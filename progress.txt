@@ -1,3 +1,16 @@
+## 2026-03-20 - US-011
+- Added `trio-host/src/artifact.rs`: `ArtifactKind` enum (DiscoverFindings/SearcherFindings/TraceFindings with `as_str`/`filename`), `json_escape` helper, `format_record` fn serialising all `EvidenceRecord` fields to a JSONL string, `append_record` fn writing to file in append mode; 26 Rust tests
+- Added `trio-reason/trio_reason/artifact.py`: equivalent Python module with `ArtifactKind(str, Enum)` (filename property), `format_record` fn using `json.dumps`, `append_record` fn opening file in `"a"` mode
+- Added `trio-reason/tests/test_artifact.py`: 38 tests in class-based style covering all 3 kind values, filename property, format_record with all fields (layer null/present, raw_refs, interpretation, metadata, all statuses, all tools), append_record creates/appends/preserves existing content, str path support, provenance completeness check
+- Exposed `pub mod artifact` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/artifact.rs, trio-host/src/lib.rs, trio-reason/trio_reason/artifact.py, trio-reason/tests/test_artifact.py
+- **Learnings for future iterations:**
+  - Artifact files are JSONL: `discover-findings.jsonl`, `searcher-findings.jsonl`, `trace-findings.jsonl` under `workspace.artifacts/`
+  - `format_record` serialises all EvidenceRecord fields to preserve full provenance — no external index needed to attribute a line to its originating tool/run
+  - Flow: produce EvidenceRecord → `append_record(layout.artifact_path(kind.filename), record)` → emit `FindingRecorded` or `WorkspaceUpdated` journal entry
+  - Use `source_tool + timestamp + target` as natural key for `evidence_ref` in journal entries that reference artifact records
+---
+
 ## 2026-03-19 - US-010
 - Added `trio-host/src/journal.rs`: `JournalEventKind` enum (5 kinds with `as_str`), `JournalEntry` struct (id/timestamp/tool/event_kind/summary/evidence_ref/metadata + `new` constructor), `json_escape` helper, `format_line` fn returning JSONL string, `append` fn writing to file in append mode; 29 Rust tests
 - Added `trio-reason/trio_reason/journal.py`: equivalent Python module with `JournalEventKind(str, Enum)`, `JournalEntry` dataclass, `format_line` fn using `json.dumps`, `append` fn opening file in `"a"` mode
