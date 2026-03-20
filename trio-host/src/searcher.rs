@@ -439,6 +439,32 @@ pub fn backends_with_capability(cap: BackendCapability) -> Vec<&'static SearchBa
     results
 }
 
+/// Select the best available backend for the given capability.
+///
+/// Iterates [`backends_with_capability`] (preferred-first order) and returns
+/// the first entry whose `name` appears in `available`.  Returns `None` when
+/// no capable backend is installed on the host.
+///
+/// # Arguments
+///
+/// * `cap` — the capability that the chosen backend must support.
+/// * `available` — names of backends present on the host (e.g. `["rg", "grep"]`).
+///
+/// # Fallback guarantee
+///
+/// Because [`backends_with_capability`] sorts preferred before non-preferred,
+/// this function automatically degrades to a fallback backend when a preferred
+/// tool is absent.  Callers do not need to inspect the `preferred` flag —
+/// they always receive the best available option.
+pub fn select_backend<'a>(
+    cap: BackendCapability,
+    available: &[&str],
+) -> Option<&'static SearchBackend> {
+    backends_with_capability(cap)
+        .into_iter()
+        .find(|b| available.contains(&b.name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -851,5 +877,86 @@ mod tests {
         let rec = normalize(&hit, "2026-03-19T00:00:00Z", DiagnosticStatus::Pass);
         assert!(rec.summary.contains("entry-point-tracing"));
         assert!(rec.summary.contains("DATABASE_URL"));
+    }
+
+    // ── select_backend ───────────────────────────────────────────────────────
+
+    #[test]
+    fn select_backend_returns_rg_when_available() {
+        let available = &["rg", "grep"];
+        let backend = select_backend(BackendCapability::RecursiveSearch, available).unwrap();
+        assert_eq!(backend.name, "rg");
+    }
+
+    #[test]
+    fn select_backend_returns_preferred_first() {
+        // rg and ag are both preferred for recursive search; rg comes first in catalog
+        let available = &["ag", "rg", "grep"];
+        let backend = select_backend(BackendCapability::RecursiveSearch, available).unwrap();
+        assert_eq!(backend.name, "rg");
+    }
+
+    #[test]
+    fn select_backend_falls_back_when_preferred_missing() {
+        // rg and ag are missing; grep is the fallback
+        let available = &["grep"];
+        let backend = select_backend(BackendCapability::RecursiveSearch, available).unwrap();
+        assert_eq!(backend.name, "grep");
+    }
+
+    #[test]
+    fn select_backend_falls_back_to_peco_when_fzf_missing() {
+        let available = &["peco"];
+        let backend = select_backend(BackendCapability::InteractiveFilter, available).unwrap();
+        assert_eq!(backend.name, "peco");
+    }
+
+    #[test]
+    fn select_backend_returns_none_when_no_tool_available() {
+        let available: &[&str] = &[];
+        let backend = select_backend(BackendCapability::RecursiveSearch, available);
+        assert!(backend.is_none());
+    }
+
+    #[test]
+    fn select_backend_returns_none_when_no_capable_tool_available() {
+        // grep has no interactive-filter capability
+        let available = &["grep"];
+        let backend = select_backend(BackendCapability::InteractiveFilter, available);
+        assert!(backend.is_none());
+    }
+
+    #[test]
+    fn select_backend_result_name_preserved_in_normalize() {
+        // The backend name from select_backend should round-trip through normalize
+        let available = &["grep"];
+        let backend = select_backend(BackendCapability::RecursiveSearch, available).unwrap();
+        let hit = RawSearchHit {
+            file_path: "/repo/Cargo.toml".into(),
+            line_number: None,
+            matched_text: "tokio".into(),
+            backend: backend.name.into(),
+            intent: SearchIntent::DependencyTracing,
+            result_kind: ResultKind::GeneratedArtifact,
+            query: "tokio".into(),
+        };
+        let rec = normalize(&hit, "2026-03-20T00:00:00Z", DiagnosticStatus::Pass);
+        assert_eq!(rec.metadata.get("backend").map(String::as_str), Some("grep"));
+    }
+
+    #[test]
+    fn select_backend_preferred_false_when_only_fallback_available() {
+        let available = &["grep"];
+        let backend = select_backend(BackendCapability::RecursiveSearch, available).unwrap();
+        assert!(!backend.preferred);
+    }
+
+    #[test]
+    fn select_backend_structured_query_prefers_jq_over_ugrep() {
+        let available = &["ugrep", "jq", "yq"];
+        let backend = select_backend(BackendCapability::StructuredQuery, available).unwrap();
+        // jq and yq are preferred; ugrep is not
+        assert!(backend.preferred);
+        assert!(backend.name == "jq" || backend.name == "yq");
     }
 }

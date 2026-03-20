@@ -15,6 +15,7 @@ from trio_reason.searcher import (
     SearchIntent,
     backends_with_capability,
     normalize,
+    select_backend,
 )
 
 
@@ -410,3 +411,96 @@ class TestNormalize:
                 DiagnosticStatus.PASS,
             )
             assert rec.metadata.get("result_kind") == kind.value
+
+
+# ---------------------------------------------------------------------------
+# select_backend
+# ---------------------------------------------------------------------------
+
+
+class TestSelectBackend:
+    def test_returns_rg_when_available(self) -> None:
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["rg", "grep"])
+        assert backend is not None
+        assert backend.name == "rg"
+
+    def test_returns_preferred_first(self) -> None:
+        # rg and ag are both preferred; rg comes first in catalog
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["ag", "rg", "grep"])
+        assert backend is not None
+        assert backend.name == "rg"
+
+    def test_falls_back_when_preferred_missing(self) -> None:
+        # rg and ag are missing; grep is the fallback
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["grep"])
+        assert backend is not None
+        assert backend.name == "grep"
+
+    def test_falls_back_to_peco_when_fzf_missing(self) -> None:
+        backend = select_backend(BackendCapability.INTERACTIVE_FILTER, ["peco"])
+        assert backend is not None
+        assert backend.name == "peco"
+
+    def test_returns_none_when_no_tool_available(self) -> None:
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, [])
+        assert backend is None
+
+    def test_returns_none_when_no_capable_tool_available(self) -> None:
+        # grep has no interactive-filter capability
+        backend = select_backend(BackendCapability.INTERACTIVE_FILTER, ["grep"])
+        assert backend is None
+
+    def test_fallback_backend_is_not_preferred(self) -> None:
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["grep"])
+        assert backend is not None
+        assert backend.preferred is False
+
+    def test_preferred_backend_is_preferred(self) -> None:
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["rg"])
+        assert backend is not None
+        assert backend.preferred is True
+
+    def test_backend_name_preserved_in_normalize(self) -> None:
+        backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["grep"])
+        assert backend is not None
+        hit = RawSearchHit(
+            file_path="/repo/Cargo.toml",
+            matched_text="tokio",
+            backend=backend.name,
+            intent=SearchIntent.DEPENDENCY_TRACING,
+            result_kind=ResultKind.GENERATED_ARTIFACT,
+            query="tokio",
+        )
+        rec = normalize(hit, "2026-03-20T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.metadata.get("backend") == "grep"
+
+    def test_structured_query_prefers_jq_or_yq_over_ugrep(self) -> None:
+        backend = select_backend(BackendCapability.STRUCTURED_QUERY, ["ugrep", "jq", "yq"])
+        assert backend is not None
+        assert backend.preferred is True
+        assert backend.name in {"jq", "yq"}
+
+    def test_output_shape_preserved_for_fallback(self) -> None:
+        # Normalized output from a fallback backend must have the same shape as
+        # output from a preferred backend.
+        preferred_backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["rg"])
+        fallback_backend = select_backend(BackendCapability.RECURSIVE_SEARCH, ["grep"])
+        assert preferred_backend is not None
+        assert fallback_backend is not None
+
+        def make_rec(backend_name: str) -> object:
+            hit = RawSearchHit(
+                file_path="/repo/src/main.rs",
+                matched_text="pattern",
+                backend=backend_name,
+                intent=SearchIntent.CONFIG_LOOKUP,
+                result_kind=ResultKind.SOURCE_CODE,
+                query="pattern",
+            )
+            return normalize(hit, "2026-03-20T00:00:00Z", DiagnosticStatus.PASS)
+
+        preferred_rec = make_rec(preferred_backend.name)
+        fallback_rec = make_rec(fallback_backend.name)
+
+        # Both records must have identical field names (same shape)
+        assert vars(preferred_rec).keys() == vars(fallback_rec).keys()

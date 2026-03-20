@@ -283,6 +283,44 @@ def backends_with_capability(cap: BackendCapability) -> list[SearchBackend]:
     return sorted(matching, key=lambda b: not b.preferred)
 
 
+def select_backend(
+    cap: BackendCapability,
+    available: list[str],
+) -> Optional[SearchBackend]:
+    """Select the best available backend for *cap* from *available* tool names.
+
+    Iterates :func:`backends_with_capability` (preferred-first order) and
+    returns the first entry whose :attr:`SearchBackend.name` appears in
+    *available*.  Returns ``None`` when no capable backend is installed on
+    the host.
+
+    Parameters
+    ----------
+    cap:
+        The capability that the chosen backend must support.
+    available:
+        Names of backends present on the host (e.g. ``["rg", "grep"]``).
+
+    Returns
+    -------
+    SearchBackend or None
+        The highest-priority available backend, or ``None`` if no capable
+        backend is installed.
+
+    Notes
+    -----
+    Because :func:`backends_with_capability` sorts preferred before
+    non-preferred, this function automatically degrades to a fallback backend
+    when a preferred tool is absent.  Callers do not need to inspect the
+    ``preferred`` flag — they always receive the best available option.
+    """
+    available_set = set(available)
+    for backend in backends_with_capability(cap):
+        if backend.name in available_set:
+            return backend
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Search intent
 # ---------------------------------------------------------------------------
