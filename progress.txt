@@ -1,3 +1,18 @@
+## 2026-03-19 - US-009
+- Added `trio-host/src/safety.rs`: `SafetyLevel` enum (ReadOnly=0, Authorized=1, PartialOrd/Ord), `SafetyViolation` struct (operation/required/granted + Display), `SafetyPolicy` struct (read_only/authorized constructors + Default=ReadOnly), `check_gate` fn returning `Result<(), SafetyViolation>`; 26 Rust tests
+- Added `required_safety_level()` to `TraceTarget` in `trace.rs`: Sessions and PayloadOrProtocol → Authorized; all others → ReadOnly
+- Added `required_safety_level()` to `DiscoverScope` in `discover.rs`: Repository → ReadOnly, Host → Authorized
+- Added `trio-reason/trio_reason/safety.py`: equivalent Python module with `SafetyLevel(int, Enum)` (label method), `SafetyViolation(Exception)`, `SafetyPolicy` dataclass (read_only/authorized classmethods), `check_gate` raising SafetyViolation on violation
+- Extended `TraceTarget` in `trace.py` and `DiscoverScope` in `discover.py` with `required_safety_level()` methods
+- Added `trio-reason/tests/test_safety.py`: 29 tests covering level ordering, labels, policy constructors, gate pass/block scenarios, violation attributes, and safety levels for all TraceTarget and DiscoverScope variants
+- Exposed `pub mod safety` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/safety.rs, trio-host/src/lib.rs, trio-host/src/trace.rs, trio-host/src/discover.rs, trio-reason/trio_reason/safety.py, trio-reason/trio_reason/trace.py, trio-reason/trio_reason/discover.py, trio-reason/tests/test_safety.py
+- **Learnings for future iterations:**
+  - `SafetyLevel` uses `int, enum.Enum` in Python — direct `== 0` / `== 1` comparisons trigger mypy `comparison-overlap`; use `.value` in tests
+  - `check_gate` returns `None` implicitly; mypy raises `func-returns-value` if you assign `result = check_gate(...)` and then assert on result
+  - `PartialOrd + Ord` derived on `SafetyLevel` Rust enum uses discriminant order, so `ReadOnly=0 < Authorized=1` works without custom impl
+---
+
 ## 2026-03-19 - US-008
 - Added `trio-host/src/trace.rs`: `TraceTarget` enum (8 targets with `as_str` and `default_layer`), `capture` fn producing `EvidenceKind::Runtime` `EvidenceRecord` with `source_tool="trace"` and `trace_target` metadata; 21 Rust tests
 - Added `trio-reason/trio_reason/trace.py`: equivalent Python module with `TraceTarget(str, Enum)` and `capture` function; local `_TARGET_LAYER` dict maps target values to OSI layer numbers
