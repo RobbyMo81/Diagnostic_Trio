@@ -1,3 +1,15 @@
+## 2026-03-20 - US-012
+- Added `trio-host/src/boundary.rs`: `RustRole` enum (5 roles: Cli/HostInteraction/Orchestration/Normalization/McpExposure with `label`), `PythonRole` enum (4 roles: Reasoning/Interpretation/Synthesis/NarrativeGeneration with `label`), `BridgeMessageKind` enum (EvidenceForReasoning/ReasoningResponse/Shutdown with `as_str`), `BridgeMessage` struct (kind/payload/metadata + `new`), `encode_message` fn (JSONL serialisation), `decode_kind`/`decode_payload` helpers, `ALL_RUST_ROLES`/`ALL_PYTHON_ROLES` constant slices; 26 Rust tests
+- Added `trio-reason/trio_reason/boundary.py`: mirror `RustRole(str, Enum)`, `PythonRole(str, Enum)`, `BridgeMessageKind(str, Enum)`, `BridgeMessage` dataclass, `ALL_RUST_ROLES`/`ALL_PYTHON_ROLES` lists, `encode_message` fn (json.dumps compact), `decode_message` fn returning Optional[BridgeMessage]
+- Added `trio-reason/tests/test_boundary.py`: 36 tests covering all role values, uniqueness, kind values, message construction/metadata isolation, encode single-line output, encode valid JSON, encode special chars, decode all kinds, decode missing/invalid fields return None, round-trip encode→decode
+- Exposed `pub mod boundary` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/boundary.rs, trio-host/src/lib.rs, trio-reason/trio_reason/boundary.py, trio-reason/tests/test_boundary.py
+- **Learnings for future iterations:**
+  - IPC contract: Rust writes EVIDENCE_FOR_REASONING JSONL lines; Python reads, reasons, writes REASONING_RESPONSE JSONL lines back; SHUTDOWN terminates the session
+  - `encode_message` uses `json.dumps(..., separators=(",",":"))` for compact no-whitespace output; decode uses `json.loads` — same pattern as journal/artifact
+  - `BridgeMessage.payload` is a string (already-serialised JSON); receivers call `json.loads(msg.payload)` for the inner body — avoids double-nested JSON encoding
+---
+
 ## 2026-03-20 - US-011
 - Added `trio-host/src/artifact.rs`: `ArtifactKind` enum (DiscoverFindings/SearcherFindings/TraceFindings with `as_str`/`filename`), `json_escape` helper, `format_record` fn serialising all `EvidenceRecord` fields to a JSONL string, `append_record` fn writing to file in append mode; 26 Rust tests
 - Added `trio-reason/trio_reason/artifact.py`: equivalent Python module with `ArtifactKind(str, Enum)` (filename property), `format_record` fn using `json.dumps`, `append_record` fn opening file in `"a"` mode
