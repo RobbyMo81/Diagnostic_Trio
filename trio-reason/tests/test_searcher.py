@@ -1,15 +1,20 @@
-"""Tests for trio_reason.searcher backend catalog (US-006)."""
+"""Tests for trio_reason.searcher backend catalog and normalisation (US-006, US-007)."""
 
 from __future__ import annotations
 
 import pytest
 
+from trio_reason.evidence import DiagnosticStatus, EvidenceKind
 from trio_reason.searcher import (
     CATALOG,
     BackendCapability,
     BackendCategory,
+    RawSearchHit,
+    ResultKind,
     SearchBackend,
+    SearchIntent,
     backends_with_capability,
+    normalize,
 )
 
 
@@ -207,3 +212,201 @@ class TestBackendsWithCapability:
         stream_backends = {b.name for b in backends_with_capability(BackendCapability.STREAM_PROCESSING)}
         interactive_backends = {b.name for b in backends_with_capability(BackendCapability.INTERACTIVE_FILTER)}
         assert stream_backends.isdisjoint(interactive_backends)
+
+
+# ---------------------------------------------------------------------------
+# SearchIntent
+# ---------------------------------------------------------------------------
+
+
+class TestSearchIntent:
+    def test_config_lookup_value(self) -> None:
+        assert SearchIntent.CONFIG_LOOKUP.value == "config-lookup"
+
+    def test_error_string_hunt_value(self) -> None:
+        assert SearchIntent.ERROR_STRING_HUNT.value == "error-string-hunt"
+
+    def test_entry_point_tracing_value(self) -> None:
+        assert SearchIntent.ENTRY_POINT_TRACING.value == "entry-point-tracing"
+
+    def test_dependency_tracing_value(self) -> None:
+        assert SearchIntent.DEPENDENCY_TRACING.value == "dependency-tracing"
+
+    def test_schema_or_payload_search_value(self) -> None:
+        assert SearchIntent.SCHEMA_OR_PAYLOAD_SEARCH.value == "schema-or-payload-search"
+
+    def test_secret_or_config_surface_value(self) -> None:
+        assert SearchIntent.SECRET_OR_CONFIG_SURFACE_DETECTION.value == "secret-or-config-surface"
+
+    def test_all_six_intents_defined(self) -> None:
+        assert len(SearchIntent) == 6
+
+    def test_config_lookup_layer_7(self) -> None:
+        assert SearchIntent.CONFIG_LOOKUP.default_layer() == 7
+
+    def test_schema_or_payload_layer_6(self) -> None:
+        assert SearchIntent.SCHEMA_OR_PAYLOAD_SEARCH.default_layer() == 6
+
+    def test_dependency_tracing_layer_7(self) -> None:
+        assert SearchIntent.DEPENDENCY_TRACING.default_layer() == 7
+
+    def test_error_string_hunt_layer_7(self) -> None:
+        assert SearchIntent.ERROR_STRING_HUNT.default_layer() == 7
+
+    def test_entry_point_tracing_layer_7(self) -> None:
+        assert SearchIntent.ENTRY_POINT_TRACING.default_layer() == 7
+
+    def test_secret_surface_layer_7(self) -> None:
+        assert SearchIntent.SECRET_OR_CONFIG_SURFACE_DETECTION.default_layer() == 7
+
+
+# ---------------------------------------------------------------------------
+# ResultKind
+# ---------------------------------------------------------------------------
+
+
+class TestResultKind:
+    def test_file_value(self) -> None:
+        assert ResultKind.FILE.value == "file"
+
+    def test_config_value(self) -> None:
+        assert ResultKind.CONFIG.value == "config"
+
+    def test_log_value(self) -> None:
+        assert ResultKind.LOG.value == "log"
+
+    def test_source_code_value(self) -> None:
+        assert ResultKind.SOURCE_CODE.value == "source-code"
+
+    def test_structured_text_value(self) -> None:
+        assert ResultKind.STRUCTURED_TEXT.value == "structured-text"
+
+    def test_generated_artifact_value(self) -> None:
+        assert ResultKind.GENERATED_ARTIFACT.value == "generated-artifact"
+
+    def test_all_six_kinds_defined(self) -> None:
+        assert len(ResultKind) == 6
+
+
+# ---------------------------------------------------------------------------
+# normalize
+# ---------------------------------------------------------------------------
+
+
+def _make_hit(
+    intent: SearchIntent = SearchIntent.CONFIG_LOOKUP,
+    result_kind: ResultKind = ResultKind.CONFIG,
+    line_number: int | None = None,
+) -> RawSearchHit:
+    return RawSearchHit(
+        file_path="/repo/src/main.rs",
+        matched_text="DATABASE_URL=postgres://localhost/app",
+        backend="rg",
+        intent=intent,
+        result_kind=result_kind,
+        query="DATABASE_URL",
+        line_number=line_number,
+    )
+
+
+class TestNormalize:
+    def test_source_tool_is_searcher(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.source_tool == "searcher"
+
+    def test_probe_family_from_intent(self) -> None:
+        rec = normalize(
+            _make_hit(intent=SearchIntent.ERROR_STRING_HUNT, result_kind=ResultKind.LOG),
+            "2026-03-19T00:00:00Z",
+            DiagnosticStatus.PASS,
+        )
+        assert rec.probe_family == "error-string-hunt"
+
+    def test_target_is_file_path(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.target == "/repo/src/main.rs"
+
+    def test_layer_7_for_config_lookup(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.layer == 7
+
+    def test_layer_6_for_schema_search(self) -> None:
+        rec = normalize(
+            _make_hit(
+                intent=SearchIntent.SCHEMA_OR_PAYLOAD_SEARCH,
+                result_kind=ResultKind.STRUCTURED_TEXT,
+            ),
+            "2026-03-19T00:00:00Z",
+            DiagnosticStatus.PASS,
+        )
+        assert rec.layer == 6
+
+    def test_kind_is_static(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.kind == EvidenceKind.STATIC
+
+    def test_status_is_propagated(self) -> None:
+        rec = normalize(
+            _make_hit(
+                intent=SearchIntent.SECRET_OR_CONFIG_SURFACE_DETECTION,
+                result_kind=ResultKind.CONFIG,
+            ),
+            "2026-03-19T00:00:00Z",
+            DiagnosticStatus.FAIL,
+        )
+        assert rec.status == DiagnosticStatus.FAIL
+
+    def test_raw_refs_contains_matched_text(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert "DATABASE_URL=postgres://localhost/app" in rec.raw_refs
+
+    def test_metadata_contains_backend(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.metadata.get("backend") == "rg"
+
+    def test_metadata_contains_result_kind(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.metadata.get("result_kind") == "config"
+
+    def test_metadata_contains_query(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert rec.metadata.get("query") == "DATABASE_URL"
+
+    def test_line_number_in_metadata_when_present(self) -> None:
+        rec = normalize(
+            _make_hit(intent=SearchIntent.ERROR_STRING_HUNT, result_kind=ResultKind.LOG, line_number=42),
+            "2026-03-19T00:00:00Z",
+            DiagnosticStatus.FAIL,
+        )
+        assert rec.metadata.get("line_number") == "42"
+
+    def test_no_line_number_key_when_absent(self) -> None:
+        rec = normalize(_make_hit(), "2026-03-19T00:00:00Z", DiagnosticStatus.PASS)
+        assert "line_number" not in rec.metadata
+
+    def test_summary_contains_intent_and_query(self) -> None:
+        rec = normalize(
+            _make_hit(intent=SearchIntent.ENTRY_POINT_TRACING, result_kind=ResultKind.SOURCE_CODE),
+            "2026-03-19T00:00:00Z",
+            DiagnosticStatus.PASS,
+        )
+        assert "entry-point-tracing" in rec.summary
+        assert "DATABASE_URL" in rec.summary
+
+    def test_all_intents_normalize_without_error(self) -> None:
+        for intent in SearchIntent:
+            rec = normalize(
+                _make_hit(intent=intent, result_kind=ResultKind.FILE),
+                "2026-03-19T00:00:00Z",
+                DiagnosticStatus.PASS,
+            )
+            assert rec.source_tool == "searcher"
+
+    def test_all_result_kinds_normalize_without_error(self) -> None:
+        for kind in ResultKind:
+            rec = normalize(
+                _make_hit(intent=SearchIntent.CONFIG_LOOKUP, result_kind=kind),
+                "2026-03-19T00:00:00Z",
+                DiagnosticStatus.PASS,
+            )
+            assert rec.metadata.get("result_kind") == kind.value

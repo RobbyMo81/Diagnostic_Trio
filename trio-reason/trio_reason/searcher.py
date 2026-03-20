@@ -1,9 +1,17 @@
-"""Searcher backend catalog for Diagnostic Trio.
+"""Searcher backend catalog and result normalisation for Diagnostic Trio.
 
 Searcher knows which search tools are available on the host, what each tool can
 do, and which are preferred versus optional fallbacks.  This catalog is the
 authoritative source of truth for capability selection and graceful-degradation
 logic (see US-013 for fallback behaviour).
+
+Result normalisation
+--------------------
+Raw search hits are normalised into :class:`~trio_reason.evidence.EvidenceRecord`
+values via :func:`normalize`.  Each hit carries a :class:`SearchIntent`
+describing *why* the search was issued and a :class:`ResultKind` describing the
+type of artifact that matched.  The normaliser uses the intent to assign a
+default OSI layer and to populate the ``probe_family`` field.
 
 Backend categories
 ------------------
@@ -35,6 +43,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass, field
+from typing import Optional
 
 
 class BackendCategory(str, enum.Enum):
@@ -272,3 +281,186 @@ def backends_with_capability(cap: BackendCapability) -> list[SearchBackend]:
     """
     matching = [b for b in CATALOG if b.has_capability(cap)]
     return sorted(matching, key=lambda b: not b.preferred)
+
+
+# ---------------------------------------------------------------------------
+# Search intent
+# ---------------------------------------------------------------------------
+
+
+class SearchIntent(str, enum.Enum):
+    """Why a search was issued — used to assign probe family and default OSI layer.
+
+    +--------------------------------+-------+-----------------------------------+
+    | Intent                         | Layer | Probe family label                |
+    +================================+=======+===================================+
+    | ``CONFIG_LOOKUP``              | 7     | ``config-lookup``                 |
+    +--------------------------------+-------+-----------------------------------+
+    | ``ERROR_STRING_HUNT``          | 7     | ``error-string-hunt``             |
+    +--------------------------------+-------+-----------------------------------+
+    | ``ENTRY_POINT_TRACING``        | 7     | ``entry-point-tracing``           |
+    +--------------------------------+-------+-----------------------------------+
+    | ``DEPENDENCY_TRACING``         | 7     | ``dependency-tracing``            |
+    +--------------------------------+-------+-----------------------------------+
+    | ``SCHEMA_OR_PAYLOAD_SEARCH``   | 6     | ``schema-or-payload-search``      |
+    +--------------------------------+-------+-----------------------------------+
+    | ``SECRET_OR_CONFIG_SURFACE``   | 7     | ``secret-or-config-surface``      |
+    +--------------------------------+-------+-----------------------------------+
+    """
+
+    CONFIG_LOOKUP = "config-lookup"
+    """Locate configuration values, keys, or files for a target component."""
+
+    ERROR_STRING_HUNT = "error-string-hunt"
+    """Hunt for error strings, stack traces, or exception patterns."""
+
+    ENTRY_POINT_TRACING = "entry-point-tracing"
+    """Trace entry points such as ``main``, CLI handlers, or route registrations."""
+
+    DEPENDENCY_TRACING = "dependency-tracing"
+    """Trace imports, ``require``, ``use``, or manifest dependency declarations."""
+
+    SCHEMA_OR_PAYLOAD_SEARCH = "schema-or-payload-search"
+    """Search data schemas, serialisation formats, or protocol payloads."""
+
+    SECRET_OR_CONFIG_SURFACE_DETECTION = "secret-or-config-surface"
+    """Surface exposed secrets, credentials, or sensitive config values."""
+
+    def default_layer(self) -> Optional[int]:
+        """Return the default OSI layer for findings produced by this intent.
+
+        Returns ``None`` when the intent does not map to a single well-known layer.
+        """
+        if self == SearchIntent.SCHEMA_OR_PAYLOAD_SEARCH:
+            return 6  # Presentation
+        return 7  # Application
+
+
+# ---------------------------------------------------------------------------
+# Result kind
+# ---------------------------------------------------------------------------
+
+
+class ResultKind(str, enum.Enum):
+    """The type of artifact that matched a search query."""
+
+    FILE = "file"
+    """A generic file path match (name or path search, no content examined)."""
+
+    CONFIG = "config"
+    """A configuration file or embedded config value."""
+
+    LOG = "log"
+    """A log file or log-formatted text stream."""
+
+    SOURCE_CODE = "source-code"
+    """Application source code."""
+
+    STRUCTURED_TEXT = "structured-text"
+    """Structured-text format: JSON, YAML, TOML, XML, CSV, …"""
+
+    GENERATED_ARTIFACT = "generated-artifact"
+    """Machine-generated artifact: build output, lock file, schema dump, …"""
+
+
+# ---------------------------------------------------------------------------
+# Raw search hit
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RawSearchHit:
+    """Unprocessed output from a single search backend match, ready for normalisation.
+
+    Parameters
+    ----------
+    file_path:
+        Path to the file that contained the match.
+    matched_text:
+        The matched text or excerpt returned by the backend.
+    backend:
+        Name of the backend that produced this hit (e.g. ``"rg"``).
+    intent:
+        Why the search was issued.
+    result_kind:
+        Type of artifact that matched.
+    query:
+        The query string or pattern that was searched.
+    line_number:
+        Line number of the match, if the backend reports it.
+    """
+
+    file_path: str
+    matched_text: str
+    backend: str
+    intent: SearchIntent
+    result_kind: ResultKind
+    query: str
+    line_number: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Normalisation
+# ---------------------------------------------------------------------------
+
+
+def normalize(
+    hit: RawSearchHit,
+    timestamp: str,
+    status: "DiagnosticStatus",  # type: ignore[name-defined]  # noqa: F821
+) -> "EvidenceRecord":  # type: ignore[name-defined]  # noqa: F821
+    """Normalise a raw search hit into a shared :class:`~trio_reason.evidence.EvidenceRecord`.
+
+    Parameters
+    ----------
+    hit:
+        The raw match from a search backend.
+    timestamp:
+        RFC 3339 timestamp of when the search ran.
+    status:
+        Caller-assigned diagnostic status (e.g. :attr:`DiagnosticStatus.PASS`
+        when a config was found, :attr:`DiagnosticStatus.FAIL` when a secret
+        is exposed).
+
+    Returns
+    -------
+    EvidenceRecord
+        ``source_tool`` is always ``"searcher"``, ``probe_family`` is taken
+        from :meth:`SearchIntent.value`, ``layer`` from
+        :meth:`SearchIntent.default_layer`, and ``kind`` is always
+        :attr:`EvidenceKind.STATIC` — Searcher operates on repository and
+        filesystem artifacts, never on live runtime state.
+    """
+    from trio_reason.evidence import EvidenceKind, EvidenceRecord  # local import avoids cycles
+
+    loc_suffix = f":{hit.line_number}" if hit.line_number is not None else ""
+    summary = (
+        f"[{hit.intent.value}] query {hit.query!r} matched in {hit.file_path}{loc_suffix}"
+    )
+
+    raw_refs: list[str] = [hit.matched_text]
+    if hit.line_number is not None:
+        raw_refs.append(f"{hit.file_path}:{hit.line_number}")
+
+    metadata: dict[str, str] = {
+        "backend": hit.backend,
+        "result_kind": hit.result_kind.value,
+        "query": hit.query,
+    }
+    if hit.line_number is not None:
+        metadata["line_number"] = str(hit.line_number)
+
+    return EvidenceRecord(
+        source_tool="searcher",
+        timestamp=timestamp,
+        target=hit.file_path,
+        probe_family=hit.intent.value,
+        status=status,
+        summary=summary,
+        kind=EvidenceKind.STATIC,
+        layer=hit.intent.default_layer(),
+        raw_refs=raw_refs,
+        confidence=1.0,
+        interpretation=None,
+        metadata=metadata,
+    )
