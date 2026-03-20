@@ -1,3 +1,14 @@
+## 2026-03-20 - US-013
+- Added `select_backend(cap, available)` to `trio-host/src/searcher.rs`: iterates `backends_with_capability(cap)` (preferred-first) and returns the first backend whose name appears in `available`; returns `None` when no capable backend is available on the host; 9 Rust tests
+- Added `select_backend(cap, available)` to `trio-reason/trio_reason/searcher.py`: equivalent Python function using `available_set` for O(1) lookup; returns `Optional[SearchBackend]`
+- Added `TestSelectBackend` class to `trio-reason/tests/test_searcher.py`: 11 tests covering preferred-first selection, fallback to non-preferred, None when no tool available, None when tool present lacks capability, provenance preservation through `normalize`, and output shape identity between preferred and fallback normalised records
+- Files changed: trio-host/src/searcher.rs, trio-reason/trio_reason/searcher.py, trio-reason/tests/test_searcher.py
+- **Learnings for future iterations:**
+  - `select_backend` is deliberately stateless — it takes `available: &[&str]` / `list[str]` rather than probing the host itself, keeping the model pure and testable without filesystem access
+  - The fallback guarantee comes for free from `backends_with_capability`'s preferred-first sort; `select_backend` just scans until it finds an available one
+  - Output shape identity test (comparing `vars(...).keys()`) is a lightweight way to assert normalisation contract without duplicating field-level assertions
+---
+
 ## 2026-03-20 - US-012
 - Added `trio-host/src/boundary.rs`: `RustRole` enum (5 roles: Cli/HostInteraction/Orchestration/Normalization/McpExposure with `label`), `PythonRole` enum (4 roles: Reasoning/Interpretation/Synthesis/NarrativeGeneration with `label`), `BridgeMessageKind` enum (EvidenceForReasoning/ReasoningResponse/Shutdown with `as_str`), `BridgeMessage` struct (kind/payload/metadata + `new`), `encode_message` fn (JSONL serialisation), `decode_kind`/`decode_payload` helpers, `ALL_RUST_ROLES`/`ALL_PYTHON_ROLES` constant slices; 26 Rust tests
 - Added `trio-reason/trio_reason/boundary.py`: mirror `RustRole(str, Enum)`, `PythonRole(str, Enum)`, `BridgeMessageKind(str, Enum)`, `BridgeMessage` dataclass, `ALL_RUST_ROLES`/`ALL_PYTHON_ROLES` lists, `encode_message` fn (json.dumps compact), `decode_message` fn returning Optional[BridgeMessage]
