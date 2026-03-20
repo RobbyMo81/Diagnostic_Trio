@@ -7,6 +7,7 @@
 pub mod discover;
 pub mod evidence;
 pub mod layer;
+pub mod searcher;
 pub mod workspace;
 
 /// Returns the name and version of the Trio host layer.
