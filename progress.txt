@@ -1,3 +1,15 @@
+## 2026-03-19 - US-006
+- Added `trio-host/src/searcher.rs`: `BackendCategory` enum (5 categories with `as_str`), `BackendCapability` enum (9 capabilities with `as_str`), `SearchBackend` struct (name/label/category/preferred/capabilities + `has_capability`), `CATALOG` static slice of 13 backends, `backends_with_capability` fn returning preferred-first filtered list; 32 tests
+- Added `trio-reason/trio_reason/searcher.py`: equivalent Python module with `BackendCategory(str, Enum)`, `BackendCapability(str, Enum)`, `SearchBackend` frozen dataclass, `CATALOG` list, `backends_with_capability` function
+- Added `trio-reason/tests/test_searcher.py`: 51 tests in class-based style covering category values, capability values, catalog completeness (all 5 categories + 13 backends), preferred vs. fallback flags, `has_capability`, and `backends_with_capability` ordering
+- Exposed `pub mod searcher` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/searcher.rs, trio-host/src/lib.rs, trio-reason/trio_reason/searcher.py, trio-reason/tests/test_searcher.py
+- **Learnings for future iterations:**
+  - `str, enum.Enum` members must be compared with `.value` in tests — mypy treats direct `==` to a string literal as non-overlapping and raises a `comparison-overlap` error (Python 3.14 + newer mypy)
+  - `frozenset` is the right container for capability sets in a frozen dataclass (mutable `set` would break `frozen=True`)
+  - `sorted(matching, key=lambda b: not b.preferred)` sorts preferred before non-preferred while preserving catalog order within each tier
+---
+
 ## 2026-03-19 - US-005
 - Added `trio-host/src/discover.rs`: `DiscoverProbeFamily` enum (7 families with `as_str` and `default_layer`), `DiscoverScope` enum (Repository/Host), `classify` fn producing layer-tagged `EvidenceRecord` with `discover_scope` metadata
 - Added `trio-reason/trio_reason/discover.py`: equivalent Python module with `DiscoverProbeFamily(str, Enum)`, `DiscoverScope(str, Enum)`, and `classify` function
@@ -40,6 +52,7 @@
 - Python venv at `/tmp/trio-venv` (or create fresh) — system Python is externally managed (PEP 668)
 - Run Python checks: `mypy trio_reason tests` and `pytest` from inside `trio-reason/`
 - Run Rust checks: `cargo test` from repo root (workspace)
+- `str, enum.Enum` members must use `.value` in test equality comparisons — direct `== "string"` triggers mypy `comparison-overlap` error on Python 3.14
 
 # Ralph Progress Log
 Started: Thu Mar 19 22:13:38 PDT 2026
