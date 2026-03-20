@@ -1,0 +1,217 @@
+{
+  "project": "Diagnostic Trio",
+  "branchName": "ralph/diagnostic-trio-foundation",
+  "description": "Build Diagnostic Trio as a modular diagnostic tool family that integrates Discover, Searcher, and Trace around a shared workspace, evidence contract, and journal flow without bloating Diagnostic Quartet core.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create the Diagnostic Trio project scaffold",
+      "description": "As a maintainer, I want a baseline project structure so Trio can be implemented as a standalone tool.",
+      "acceptanceCriteria": [
+        "Create the initial repository structure for Rust host execution and Python reasoning components",
+        "Add top-level project documentation describing the purpose of Diagnostic Trio",
+        "Add baseline development configuration needed to run type and test checks for the chosen stack",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Define the shared evidence schema",
+      "description": "As a maintainer, I want a common evidence schema so Discover, Searcher, and Trace emit compatible findings.",
+      "acceptanceCriteria": [
+        "Add a shared evidence record definition with fields for source tool, timestamp, target, probe family, layer, status, summary, raw references or excerpts, confidence, and interpretation",
+        "Document allowed status values including blocked, pass, fail, partial, and not-tested",
+        "Document how static and runtime evidence are distinguished in the shared schema",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Define the shared workspace and state contract",
+      "description": "As a maintainer, I want a shared workspace contract so Trio tools exchange state and artifacts consistently.",
+      "acceptanceCriteria": [
+        "Define the workspace layout Trio expects for artifacts, caches, journal data, and shared state",
+        "Document the shared state inputs required by Discover, Searcher, and Trace",
+        "Document how Trio reads from and writes back to its workspace without depending on Quartet internals",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement the layer and status model",
+      "description": "As an engineer, I want a reusable layer model so findings are classified consistently across Trio capabilities.",
+      "acceptanceCriteria": [
+        "Define Layers 1 through 7: Physical, Data Link, Network, Transport, Session, Presentation, and Application",
+        "Define rules preventing upper layers from being treated as healthy when lower layers are failed or untested",
+        "Expose the layer and diagnostic status model for reuse by Discover, Searcher, and Trace",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add Discover evidence classification",
+      "description": "As an engineer, I want Discover to classify findings by layer so likely failure surfaces are easier to isolate.",
+      "acceptanceCriteria": [
+        "Implement Discover classification for repository and host evidence into layer-tagged findings",
+        "Discover records blocked, pass, fail, partial, or not-tested status on each finding",
+        "Discover outputs use the shared evidence schema",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add Searcher backend catalog",
+      "description": "As an engineer, I want Searcher to know its supported backends so search capability selection and fallback behavior are consistent.",
+      "acceptanceCriteria": [
+        "Define backend categories covering high-performance, specialized, Windows-compatible, optional interactive, and related text-processing search tools",
+        "Document which search backends are preferred and which are optional fallbacks",
+        "Represent backend capabilities in a normalized form that other Trio components can consume",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implement Searcher result normalization",
+      "description": "As an engineer, I want Searcher outputs normalized by intent so results from different tools can be interpreted consistently.",
+      "acceptanceCriteria": [
+        "Support search intent categories for config lookup, error-string hunt, entry-point tracing, dependency tracing, schema or payload search, and secret or config surface detection",
+        "Normalize file, config, log, source-code, structured-text, and generated-artifact results into the shared evidence schema",
+        "Map search results into layer-aware meaning where applicable",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implement Trace runtime evidence capture",
+      "description": "As an engineer, I want Trace to collect live runtime evidence so behavior unavailable from static inspection can still be diagnosed.",
+      "acceptanceCriteria": [
+        "Support runtime interrogation targets including processes, listeners and open ports, routes and interfaces, sessions, logs, payload or protocol behavior, runtime dependency behavior, and bind or transport anomalies",
+        "Distinguish dynamic runtime evidence from static repository evidence in Trace outputs",
+        "Emit Trace findings using the shared evidence schema",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add runtime safety gating",
+      "description": "As a maintainer, I want runtime inspection to be safe by default so Trio remains read-only unless explicitly authorized otherwise.",
+      "acceptanceCriteria": [
+        "Default Discover and Trace behavior is non-destructive and read-only",
+        "Potentially mutating or sensitive inspection paths are explicitly gated",
+        "Safety and provenance expectations are documented for runtime inspection workflows",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Integrate a shared journal",
+      "description": "As a maintainer, I want important Trio work appended to a shared journal so the audit trail remains continuous.",
+      "acceptanceCriteria": [
+        "Create a journal workflow for Trio that captures materially important work from Discover, Searcher, and Trace",
+        "Document the journal format and append-only behavior",
+        "Link journal entries to evidence records or findings where applicable",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Define artifact write-back behavior",
+      "description": "As a maintainer, I want Trio findings written into durable artifacts so investigations remain reviewable after a run ends.",
+      "acceptanceCriteria": [
+        "Define the artifact set Trio maintains or updates from Discover, Searcher, and Trace findings",
+        "Ensure write-back behavior preserves provenance to the originating evidence records",
+        "Document how the artifact update flow relates to the shared journal and workspace",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Separate Rust execution from Python reasoning",
+      "description": "As a maintainer, I want clear language boundaries so host execution remains portable and reasoning remains isolated.",
+      "acceptanceCriteria": [
+        "Define Rust responsibilities for CLI behavior, host interaction, orchestration, normalization, and MCP exposure",
+        "Define Python responsibilities for reasoning, interpretation, synthesis, and narrative generation",
+        "Document the interface between Rust and Python components",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add search backend fallback behavior",
+      "description": "As an operator, I want Trio to degrade gracefully when preferred search tools are unavailable on the host.",
+      "acceptanceCriteria": [
+        "Searcher prefers fast local backends when available",
+        "Searcher falls back cleanly when preferred tools are missing",
+        "Fallback behavior preserves normalized output shape and provenance",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Document family architecture and operating flows",
+      "description": "As a future contributor, I want the Trio family structure documented so the system can evolve without collapsing into a monolith.",
+      "acceptanceCriteria": [
+        "Document initial setup, layered diagnosis, and maintenance or drift flows for Trio",
+        "Document the relationship between Discover, Searcher, and Trace as companion capabilities",
+        "Document extension points for new probe families or MCP exposure without changing the core evidence model",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

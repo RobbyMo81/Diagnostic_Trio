@@ -1,0 +1,3 @@
+[workspace]
+members = ["trio-host"]
+resolver = "2"

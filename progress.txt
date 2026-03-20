@@ -1,0 +1,137 @@
+## 2026-03-19 - US-010
+- Added `trio-host/src/journal.rs`: `JournalEventKind` enum (5 kinds with `as_str`), `JournalEntry` struct (id/timestamp/tool/event_kind/summary/evidence_ref/metadata + `new` constructor), `json_escape` helper, `format_line` fn returning JSONL string, `append` fn writing to file in append mode; 29 Rust tests
+- Added `trio-reason/trio_reason/journal.py`: equivalent Python module with `JournalEventKind(str, Enum)`, `JournalEntry` dataclass, `format_line` fn using `json.dumps`, `append` fn opening file in `"a"` mode
+- Added `trio-reason/tests/test_journal.py`: 32 tests in class-based style covering all 5 event kind values, entry construction + defaults, metadata isolation, format_line JSON validity, all fields, evidence_ref null/present, append creates/appends/preserves existing content, str path support
+- Exposed `pub mod journal` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/journal.rs, trio-host/src/lib.rs, trio-reason/trio_reason/journal.py, trio-reason/tests/test_journal.py
+- **Learnings for future iterations:**
+  - JSONL (JSON Lines) is the append-only journal format — one JSON object per line; `json.dumps(..., separators=(",", ":"))` produces compact output with no embedded newlines
+  - `evidence_ref` is the cross-reference field linking a journal entry to a related `EvidenceRecord` id; consumers join on this field
+  - Rust: without serde, use a manual `json_escape` helper and `format!` macro for JSONL serialisation; `O_APPEND` writes are atomic on POSIX for short lines
+  - File I/O tests should use `tempfile::TemporaryDirectory` (Python) or `std::env::temp_dir()` (Rust) and clean up after themselves
+---
+
+## 2026-03-19 - US-009
+- Added `trio-host/src/safety.rs`: `SafetyLevel` enum (ReadOnly=0, Authorized=1, PartialOrd/Ord), `SafetyViolation` struct (operation/required/granted + Display), `SafetyPolicy` struct (read_only/authorized constructors + Default=ReadOnly), `check_gate` fn returning `Result<(), SafetyViolation>`; 26 Rust tests
+- Added `required_safety_level()` to `TraceTarget` in `trace.rs`: Sessions and PayloadOrProtocol → Authorized; all others → ReadOnly
+- Added `required_safety_level()` to `DiscoverScope` in `discover.rs`: Repository → ReadOnly, Host → Authorized
+- Added `trio-reason/trio_reason/safety.py`: equivalent Python module with `SafetyLevel(int, Enum)` (label method), `SafetyViolation(Exception)`, `SafetyPolicy` dataclass (read_only/authorized classmethods), `check_gate` raising SafetyViolation on violation
+- Extended `TraceTarget` in `trace.py` and `DiscoverScope` in `discover.py` with `required_safety_level()` methods
+- Added `trio-reason/tests/test_safety.py`: 29 tests covering level ordering, labels, policy constructors, gate pass/block scenarios, violation attributes, and safety levels for all TraceTarget and DiscoverScope variants
+- Exposed `pub mod safety` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/safety.rs, trio-host/src/lib.rs, trio-host/src/trace.rs, trio-host/src/discover.rs, trio-reason/trio_reason/safety.py, trio-reason/trio_reason/trace.py, trio-reason/trio_reason/discover.py, trio-reason/tests/test_safety.py
+- **Learnings for future iterations:**
+  - `SafetyLevel` uses `int, enum.Enum` in Python — direct `== 0` / `== 1` comparisons trigger mypy `comparison-overlap`; use `.value` in tests
+  - `check_gate` returns `None` implicitly; mypy raises `func-returns-value` if you assign `result = check_gate(...)` and then assert on result
+  - `PartialOrd + Ord` derived on `SafetyLevel` Rust enum uses discriminant order, so `ReadOnly=0 < Authorized=1` works without custom impl
+---
+
+## 2026-03-19 - US-008
+- Added `trio-host/src/trace.rs`: `TraceTarget` enum (8 targets with `as_str` and `default_layer`), `capture` fn producing `EvidenceKind::Runtime` `EvidenceRecord` with `source_tool="trace"` and `trace_target` metadata; 21 Rust tests
+- Added `trio-reason/trio_reason/trace.py`: equivalent Python module with `TraceTarget(str, Enum)` and `capture` function; local `_TARGET_LAYER` dict maps target values to OSI layer numbers
+- Added `trio-reason/tests/test_trace.py`: 31 tests in class-based style covering all 8 target values, all 8 layer assignments, source_tool/kind/layer/metadata fields, all 5 statuses, and metadata isolation between calls
+- Exposed `pub mod trace` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/trace.rs, trio-host/src/lib.rs, trio-reason/trio_reason/trace.py, trio-reason/tests/test_trace.py
+- **Learnings for future iterations:**
+  - Trace always emits `EvidenceKind::Runtime` — this is the key distinction from Discover (Static); the `trace_target` metadata key mirrors `discover_scope` in Discover
+  - Layer assignments: Processes/Logs/RuntimeDependencies → L7; ListenersAndPorts/BindOrTransportAnomaly → L4; Sessions → L5; PayloadOrProtocol → L6; RoutesAndInterfaces → L3
+  - Metadata isolation test (two captures don't share metadata dict) is a good regression guard for any function that builds metadata inline
+---
+
+## 2026-03-19 - US-007
+- Added `SearchIntent` enum (6 values: ConfigLookup, ErrorStringHunt, EntryPointTracing, DependencyTracing, SchemaOrPayloadSearch, SecretOrConfigSurfaceDetection) with `as_str` and `default_layer` (L6 for schema/payload, L7 for all others)
+- Added `ResultKind` enum (6 values: File, Config, Log, SourceCode, StructuredText, GeneratedArtifact) with `as_str`
+- Added `RawSearchHit` struct with file_path, line_number, matched_text, backend, intent, result_kind, query fields
+- Added `normalize` function producing an `EvidenceRecord` with source_tool="searcher", probe_family from intent, layer from intent, kind=Static, metadata containing backend/result_kind/query/line_number
+- Extended Python `searcher.py` with identical `SearchIntent`, `ResultKind`, `RawSearchHit` dataclass, and `normalize` function (local import of EvidenceRecord to avoid circular imports)
+- Extended `trio-reason/tests/test_searcher.py` with `TestSearchIntent` (14 tests), `TestResultKind` (7 tests), `TestNormalize` (16 tests)
+- Added 23 Rust tests in `searcher.rs` covering intent labels, layer assignments, result kind labels, and all normalize scenarios
+- Files changed: trio-host/src/searcher.rs, trio-reason/trio_reason/searcher.py, trio-reason/tests/test_searcher.py
+- **Learnings for future iterations:**
+  - Local import (`from trio_reason.evidence import ...` inside the function body) avoids circular import issues when two modules cross-reference each other
+  - `# type: ignore[name-defined]` with `# noqa: F821` is needed on forward-reference string annotations in function signatures when mypy can't resolve the type at module load time
+  - Python `int | None` union syntax works on 3.10+; with `from __future__ import annotations` it is safe on 3.9+ as well
+---
+
+## 2026-03-19 - US-006
+- Added `trio-host/src/searcher.rs`: `BackendCategory` enum (5 categories with `as_str`), `BackendCapability` enum (9 capabilities with `as_str`), `SearchBackend` struct (name/label/category/preferred/capabilities + `has_capability`), `CATALOG` static slice of 13 backends, `backends_with_capability` fn returning preferred-first filtered list; 32 tests
+- Added `trio-reason/trio_reason/searcher.py`: equivalent Python module with `BackendCategory(str, Enum)`, `BackendCapability(str, Enum)`, `SearchBackend` frozen dataclass, `CATALOG` list, `backends_with_capability` function
+- Added `trio-reason/tests/test_searcher.py`: 51 tests in class-based style covering category values, capability values, catalog completeness (all 5 categories + 13 backends), preferred vs. fallback flags, `has_capability`, and `backends_with_capability` ordering
+- Exposed `pub mod searcher` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/searcher.rs, trio-host/src/lib.rs, trio-reason/trio_reason/searcher.py, trio-reason/tests/test_searcher.py
+- **Learnings for future iterations:**
+  - `str, enum.Enum` members must be compared with `.value` in tests — mypy treats direct `==` to a string literal as non-overlapping and raises a `comparison-overlap` error (Python 3.14 + newer mypy)
+  - `frozenset` is the right container for capability sets in a frozen dataclass (mutable `set` would break `frozen=True`)
+  - `sorted(matching, key=lambda b: not b.preferred)` sorts preferred before non-preferred while preserving catalog order within each tier
+---
+
+## 2026-03-19 - US-005
+- Added `trio-host/src/discover.rs`: `DiscoverProbeFamily` enum (7 families with `as_str` and `default_layer`), `DiscoverScope` enum (Repository/Host), `classify` fn producing layer-tagged `EvidenceRecord` with `discover_scope` metadata
+- Added `trio-reason/trio_reason/discover.py`: equivalent Python module with `DiscoverProbeFamily(str, Enum)`, `DiscoverScope(str, Enum)`, and `classify` function
+- Added `trio-reason/tests/test_discover.py`: 30 tests in class-based style covering all probe families, layer assignments, scope metadata, all 5 statuses, and layer spot-checks
+- Exposed `pub mod discover` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/discover.rs, trio-host/src/lib.rs, trio-reason/trio_reason/discover.py, trio-reason/tests/test_discover.py
+- **Learnings for future iterations:**
+  - Test files must use class-based style with `-> None` return annotations to satisfy mypy; standalone `def test_` functions without annotations cause mypy errors
+  - `DiscoverProbeFamily.default_layer()` returns `int` (not `OsiLayer`) to keep the Python API simple; in Rust it returns `OsiLayer` for type safety
+  - Scope is stored as `discover_scope` key in `EvidenceRecord.metadata` — a lightweight pattern for probe-specific context without adding new schema fields
+---
+
+## 2026-03-19 - US-004
+- Added `trio-host/src/layer.rs`: `OsiLayer` enum (L1-L7 with names/numbers), `status_blocks_upper` predicate, `effective_status` fn applying lower-layer dependency rule, 15 tests
+- Added `trio-reason/trio_reason/layer.py`: equivalent `OsiLayer(IntEnum)` with `layer_name`, `is_below`, `layers_below_inclusive`, `from_number`; `status_blocks_upper`; `effective_status`; `ALL_LAYERS` constant
+- Added `trio-reason/tests/test_layer.py`: 26 tests covering layer values, names, ordering, from_number, is_below, layers_below_inclusive, status_blocks_upper for all statuses, and effective_status scenarios
+- Exposed `pub mod layer` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/layer.rs, trio-host/src/lib.rs, trio-reason/trio_reason/layer.py, trio-reason/tests/test_layer.py
+- **Learnings for future iterations:**
+  - `OsiLayer` uses `IntEnum` in Python so `<`/`>` comparisons work without custom `__lt__`; Rust uses `PartialOrd`/`Ord` derived via discriminant ordering
+  - The blocking rule covers Fail, NotTested, Blocked, and Partial — only Pass allows upper layers to be healthy
+  - Same-layer findings are excluded from the lower-layer check (is_below is strict less-than)
+---
+
+## 2026-03-19 - US-003
+- Added `trio-host/src/workspace.rs`: `WorkspaceLayout` struct (root/artifacts/cache/journal/state paths + helper methods), `SharedState` struct (target, workspace, discover_scope, search_roots, search_query, trace_scope, extra), and 8 Rust tests
+- Added `trio-reason/trio_reason/workspace.py`: equivalent Python dataclasses with `WorkspaceLayout.from_root()` classmethod and all path helpers, `SharedState` with tool-specific field documentation
+- Added `trio-reason/tests/test_workspace.py`: 21 tests covering layout paths, constants, state defaults/population, and Quartet independence check
+- Exposed `pub mod workspace` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/workspace.rs, trio-host/src/lib.rs, trio-reason/trio_reason/workspace.py, trio-reason/tests/test_workspace.py
+- **Learnings for future iterations:**
+  - `WorkspaceLayout` uses a classmethod `from_root` pattern (Python) / associated fn `new` (Rust) to keep construction explicit and avoid confusion with the generated dataclass `__init__`
+  - Quartet independence is testable by checking `sys.modules` for any `quartet.*` prefix after importing the workspace module
+  - `field(default_factory=list)` and `field(default_factory=dict)` are required for mutable defaults in Python dataclasses
+---
+
+## Codebase Patterns
+- Rust crate lives in `trio-host/`, Python package in `trio-reason/trio_reason/` (underscore, inside the hyphenated project dir)
+- Python packaging uses `setuptools` with `setup.cfg` for `find:` package discovery
+- Python venv at `/tmp/trio-venv` (or create fresh) — system Python is externally managed (PEP 668)
+- Run Python checks: `mypy trio_reason tests` and `pytest` from inside `trio-reason/`
+- Run Rust checks: `cargo test` from repo root (workspace)
+- `str, enum.Enum` members must use `.value` in test equality comparisons — direct `== "string"` triggers mypy `comparison-overlap` error on Python 3.14
+
+# Ralph Progress Log
+Started: Thu Mar 19 22:13:38 PDT 2026
+---
+
+## 2026-03-19 - US-001
+- Created Rust workspace (`Cargo.toml`) with `trio-host` crate (lib + binary)
+- Created Python package `trio-reason/trio_reason/` with pyproject.toml, setup.cfg, mypy config, and pytest config
+- Updated README.md with component table, capability descriptions, and dev instructions
+- Added `.gitignore` for Rust `target/` and Python `__pycache__`/`.egg-info`
+- Files changed: Cargo.toml, Cargo.lock, .gitignore, README.md, trio-host/Cargo.toml, trio-host/src/{lib,main}.rs, trio-reason/pyproject.toml, trio-reason/setup.cfg, trio-reason/trio_reason/__init__.py, trio-reason/trio_reason/py.typed, trio-reason/tests/test_package.py
+- **Learnings for future iterations:**
+  - Python package directory must use underscore (`trio_reason`), not hyphen — placed inside the hyphen-named project dir `trio-reason/`
+  - `setuptools.backends.legacy:build` is unavailable in newer setuptools; use `setuptools.build_meta`
+  - System Python (linuxbrew) is externally managed; always use a venv at `/tmp/trio-venv`
+---
+
+## 2026-03-19 - US-002
+- Added `trio-host/src/evidence.rs`: `DiagnosticStatus` enum (blocked/pass/fail/partial/not-tested), `EvidenceKind` enum (static/runtime), and `EvidenceRecord` struct with all required fields
+- Added `trio-reason/trio_reason/evidence.py`: equivalent Python dataclass with the same schema, validation on `layer` (1-7) and `confidence` (0.0-1.0)
+- Added `trio-reason/tests/test_evidence.py`: 15 tests covering all statuses, kinds, layers, validation errors, and optional fields
+- Exposed `pub mod evidence` from `trio-host/src/lib.rs`
+- **Learnings for future iterations:**
+  - Python `list[str]` type hint works without `List` import since Python 3.9+ (venv is 3.14)
+  - `dataclass` with `field(default_factory=list)` is the idiomatic way to default mutable fields
+  - `DiagnosticStatus(str, enum.Enum)` makes status values directly usable as strings without `.value` access
+---

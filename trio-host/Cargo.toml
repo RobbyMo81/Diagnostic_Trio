@@ -1,0 +1,17 @@
+[package]
+name = "trio-host"
+version = "0.1.0"
+edition = "2021"
+description = "Diagnostic Trio host execution layer: CLI, orchestration, normalization, and MCP exposure"
+
+[[bin]]
+name = "trio"
+path = "src/main.rs"
+
+[lib]
+name = "trio_host"
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
