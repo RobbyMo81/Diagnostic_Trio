@@ -1,0 +1,69 @@
+{
+  "project": "Diagnostic Trio",
+  "branchName": "ralph/diagnostic-trio-validation",
+  "description": "Run the full documented validation cycle for Diagnostic Trio after feature completion, fix any issues uncovered, and record final verification status for both the Rust host and Python reasoning layers.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Run Rust formatting and lint validation",
+      "description": "As a maintainer, I want the Rust host layer checked with the repo's normal formatting and lint workflow so release readiness is not based on tests alone.",
+      "acceptanceCriteria": [
+        "Run `cargo fmt --check` from the repository root",
+        "Run `cargo clippy --all-targets --all-features -- -D warnings` from the repository root",
+        "Fix any Rust formatting or lint issues discovered during validation",
+        "Document the Rust validation commands and outcomes in `progress.txt`",
+        "All Rust formatting and lint commands pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Run Rust build and test validation",
+      "description": "As a maintainer, I want the Rust workspace build and test surfaces verified so host execution changes are fully validated.",
+      "acceptanceCriteria": [
+        "Run `cargo check` from the repository root",
+        "Run `cargo test` from the repository root",
+        "Fix any Rust build or test failures discovered during validation",
+        "Document the Rust build and test outcomes in `progress.txt`",
+        "All Rust build and test commands pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Run Python environment, typecheck, and test validation",
+      "description": "As a maintainer, I want the Python reasoning layer validated with the repo's documented environment and checks so the reasoning package remains shippable.",
+      "acceptanceCriteria": [
+        "Use the documented virtual environment workflow for `trio-reason/`, creating `/tmp/trio-venv` if needed",
+        "Install the Python package in editable dev mode with `pip install -e \".[dev]\"` from `trio-reason/`",
+        "Run `mypy trio_reason tests` from `trio-reason/`",
+        "Run `pytest` from `trio-reason/`",
+        "Fix any Python packaging, typecheck, or test failures discovered during validation",
+        "Document the Python environment and command outcomes in `progress.txt`",
+        "All Python validation commands pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Document final validation status and reusable workflow",
+      "description": "As a maintainer, I want the final validation pass recorded clearly so future Ralph iterations can repeat the same release-readiness workflow without rediscovering it.",
+      "acceptanceCriteria": [
+        "Append a final validation summary to `progress.txt` including the commands run, pass or fail results, and any fixes applied",
+        "Update the `Codebase Patterns` section in `progress.txt` if reusable validation workflow knowledge was discovered",
+        "Update nearby `AGENTS.md` or `CLAUDE.md` files only if genuinely reusable validation guidance was learned",
+        "Mark each validation story complete in the PRD only after its required commands pass",
+        "The repository contains a reviewable record of the completed validation cycle"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

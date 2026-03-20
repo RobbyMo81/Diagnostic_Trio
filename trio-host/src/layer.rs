@@ -90,10 +90,7 @@ impl OsiLayer {
     /// Returns an iterator over all layers from Physical (L1) up to and
     /// including `self`, ordered lowest first.
     pub fn layers_below_inclusive(self) -> impl Iterator<Item = OsiLayer> {
-        ALL_LAYERS
-            .iter()
-            .copied()
-            .take_while(move |&l| l <= self)
+        ALL_LAYERS.iter().copied().take_while(move |&l| l <= self)
     }
 }
 
@@ -138,16 +135,16 @@ pub fn status_blocks_upper(status: &DiagnosticStatus) -> bool {
 /// * `query_layer` — the layer whose effective status is being computed.
 /// * `own_status`  — the status that `query_layer`'s own probes reported.
 /// * `findings`    — other `(layer, status)` pairs from the current
-///                   diagnostic session.  May include the query layer itself;
-///                   those entries are ignored.
+///   diagnostic session.  May include the query layer itself;
+///   those entries are ignored.
 pub fn effective_status(
     query_layer: OsiLayer,
     own_status: &DiagnosticStatus,
     findings: &[(OsiLayer, DiagnosticStatus)],
 ) -> DiagnosticStatus {
-    let lower_blocked = findings.iter().any(|(l, s)| {
-        l.is_below(query_layer) && status_blocks_upper(s)
-    });
+    let lower_blocked = findings
+        .iter()
+        .any(|(l, s)| l.is_below(query_layer) && status_blocks_upper(s));
 
     if lower_blocked {
         DiagnosticStatus::Blocked
@@ -226,37 +223,21 @@ mod tests {
 
     #[test]
     fn effective_status_no_lower_findings_passes_through() {
-        let result = effective_status(
-            OsiLayer::Application,
-            &DiagnosticStatus::Pass,
-            &[],
-        );
+        let result = effective_status(OsiLayer::Application, &DiagnosticStatus::Pass, &[]);
         assert_eq!(result, DiagnosticStatus::Pass);
     }
 
     #[test]
     fn effective_status_fail_on_lower_layer_blocks_upper() {
-        let findings = vec![
-            (OsiLayer::Physical, DiagnosticStatus::Fail),
-        ];
-        let result = effective_status(
-            OsiLayer::Application,
-            &DiagnosticStatus::Pass,
-            &findings,
-        );
+        let findings = vec![(OsiLayer::Physical, DiagnosticStatus::Fail)];
+        let result = effective_status(OsiLayer::Application, &DiagnosticStatus::Pass, &findings);
         assert_eq!(result, DiagnosticStatus::Blocked);
     }
 
     #[test]
     fn effective_status_not_tested_on_lower_layer_blocks_upper() {
-        let findings = vec![
-            (OsiLayer::Network, DiagnosticStatus::NotTested),
-        ];
-        let result = effective_status(
-            OsiLayer::Transport,
-            &DiagnosticStatus::Pass,
-            &findings,
-        );
+        let findings = vec![(OsiLayer::Network, DiagnosticStatus::NotTested)];
+        let result = effective_status(OsiLayer::Transport, &DiagnosticStatus::Pass, &findings);
         assert_eq!(result, DiagnosticStatus::Blocked);
     }
 
@@ -267,25 +248,15 @@ mod tests {
             (OsiLayer::DataLink, DiagnosticStatus::Pass),
             (OsiLayer::Network, DiagnosticStatus::Pass),
         ];
-        let result = effective_status(
-            OsiLayer::Transport,
-            &DiagnosticStatus::Pass,
-            &findings,
-        );
+        let result = effective_status(OsiLayer::Transport, &DiagnosticStatus::Pass, &findings);
         assert_eq!(result, DiagnosticStatus::Pass);
     }
 
     #[test]
     fn effective_status_same_layer_findings_ignored() {
         // A Fail finding at the same layer should NOT block itself.
-        let findings = vec![
-            (OsiLayer::Application, DiagnosticStatus::Fail),
-        ];
-        let result = effective_status(
-            OsiLayer::Application,
-            &DiagnosticStatus::Pass,
-            &findings,
-        );
+        let findings = vec![(OsiLayer::Application, DiagnosticStatus::Fail)];
+        let result = effective_status(OsiLayer::Application, &DiagnosticStatus::Pass, &findings);
         // The query layer's own_status is Pass; same-layer findings are not "lower"
         assert_eq!(result, DiagnosticStatus::Pass);
     }
@@ -304,11 +275,14 @@ mod tests {
     #[test]
     fn layers_below_inclusive_transport_returns_four() {
         let below: Vec<_> = OsiLayer::Transport.layers_below_inclusive().collect();
-        assert_eq!(below, vec![
-            OsiLayer::Physical,
-            OsiLayer::DataLink,
-            OsiLayer::Network,
-            OsiLayer::Transport,
-        ]);
+        assert_eq!(
+            below,
+            vec![
+                OsiLayer::Physical,
+                OsiLayer::DataLink,
+                OsiLayer::Network,
+                OsiLayer::Transport,
+            ]
+        );
     }
 }

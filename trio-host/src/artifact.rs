@@ -228,17 +228,26 @@ mod tests {
 
     #[test]
     fn artifact_kind_discover_filename() {
-        assert_eq!(ArtifactKind::DiscoverFindings.filename(), "discover-findings.jsonl");
+        assert_eq!(
+            ArtifactKind::DiscoverFindings.filename(),
+            "discover-findings.jsonl"
+        );
     }
 
     #[test]
     fn artifact_kind_searcher_filename() {
-        assert_eq!(ArtifactKind::SearcherFindings.filename(), "searcher-findings.jsonl");
+        assert_eq!(
+            ArtifactKind::SearcherFindings.filename(),
+            "searcher-findings.jsonl"
+        );
     }
 
     #[test]
     fn artifact_kind_trace_filename() {
-        assert_eq!(ArtifactKind::TraceFindings.filename(), "trace-findings.jsonl");
+        assert_eq!(
+            ArtifactKind::TraceFindings.filename(),
+            "trace-findings.jsonl"
+        );
     }
 
     #[test]
@@ -347,7 +356,8 @@ mod tests {
     #[test]
     fn format_record_metadata_when_present() {
         let mut r = record();
-        r.metadata.insert("scope".to_string(), "repository".to_string());
+        r.metadata
+            .insert("scope".to_string(), "repository".to_string());
         let line = format_record(&r);
         assert!(line.contains("\"scope\":\"repository\""));
     }

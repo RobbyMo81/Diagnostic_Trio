@@ -309,7 +309,10 @@ mod tests {
 
     #[test]
     fn python_role_narrative_generation_label() {
-        assert_eq!(PythonRole::NarrativeGeneration.label(), "narrative-generation");
+        assert_eq!(
+            PythonRole::NarrativeGeneration.label(),
+            "narrative-generation"
+        );
     }
 
     #[test]
@@ -362,8 +365,12 @@ mod tests {
     #[test]
     fn bridge_message_with_metadata() {
         let mut msg = BridgeMessage::new(BridgeMessageKind::EvidenceForReasoning, "[]");
-        msg.metadata.insert("run_id".to_string(), "abc123".to_string());
-        assert_eq!(msg.metadata.get("run_id").map(|s| s.as_str()), Some("abc123"));
+        msg.metadata
+            .insert("run_id".to_string(), "abc123".to_string());
+        assert_eq!(
+            msg.metadata.get("run_id").map(|s| s.as_str()),
+            Some("abc123")
+        );
     }
 
     // --- encode_message ---

@@ -250,49 +250,73 @@ mod tests {
     #[test]
     fn trace_sessions_requires_authorized() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::Sessions.required_safety_level(), SafetyLevel::Authorized);
+        assert_eq!(
+            TraceTarget::Sessions.required_safety_level(),
+            SafetyLevel::Authorized
+        );
     }
 
     #[test]
     fn trace_payload_requires_authorized() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::PayloadOrProtocol.required_safety_level(), SafetyLevel::Authorized);
+        assert_eq!(
+            TraceTarget::PayloadOrProtocol.required_safety_level(),
+            SafetyLevel::Authorized
+        );
     }
 
     #[test]
     fn trace_processes_is_read_only() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::Processes.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            TraceTarget::Processes.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     #[test]
     fn trace_listeners_and_ports_is_read_only() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::ListenersAndPorts.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            TraceTarget::ListenersAndPorts.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     #[test]
     fn trace_routes_and_interfaces_is_read_only() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::RoutesAndInterfaces.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            TraceTarget::RoutesAndInterfaces.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     #[test]
     fn trace_logs_is_read_only() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::Logs.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            TraceTarget::Logs.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     #[test]
     fn trace_runtime_dependencies_is_read_only() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::RuntimeDependencies.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            TraceTarget::RuntimeDependencies.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     #[test]
     fn trace_bind_or_transport_anomaly_is_read_only() {
         use crate::trace::TraceTarget;
-        assert_eq!(TraceTarget::BindOrTransportAnomaly.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            TraceTarget::BindOrTransportAnomaly.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     // --- DiscoverScope safety levels ---
@@ -300,12 +324,18 @@ mod tests {
     #[test]
     fn discover_repository_is_read_only() {
         use crate::discover::DiscoverScope;
-        assert_eq!(DiscoverScope::Repository.required_safety_level(), SafetyLevel::ReadOnly);
+        assert_eq!(
+            DiscoverScope::Repository.required_safety_level(),
+            SafetyLevel::ReadOnly
+        );
     }
 
     #[test]
     fn discover_host_requires_authorized() {
         use crate::discover::DiscoverScope;
-        assert_eq!(DiscoverScope::Host.required_safety_level(), SafetyLevel::Authorized);
+        assert_eq!(
+            DiscoverScope::Host.required_safety_level(),
+            SafetyLevel::Authorized
+        );
     }
 }

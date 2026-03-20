@@ -163,9 +163,7 @@ pub fn normalize(hit: &RawSearchHit, timestamp: &str, status: DiagnosticStatus) 
         hit.intent.as_str(),
         hit.query,
         hit.file_path,
-        hit.line_number
-            .map(|n| format!(":{n}"))
-            .unwrap_or_default(),
+        hit.line_number.map(|n| format!(":{n}")).unwrap_or_default(),
     );
 
     let mut raw_refs = vec![hit.matched_text.clone()];
@@ -429,10 +427,8 @@ pub static CATALOG: &[SearchBackend] = &[
 /// Return all backends in `CATALOG` that have the requested capability,
 /// preferred backends first.
 pub fn backends_with_capability(cap: BackendCapability) -> Vec<&'static SearchBackend> {
-    let mut results: Vec<&SearchBackend> = CATALOG
-        .iter()
-        .filter(|b| b.has_capability(cap))
-        .collect();
+    let mut results: Vec<&SearchBackend> =
+        CATALOG.iter().filter(|b| b.has_capability(cap)).collect();
     // Stable sort: preferred before non-preferred, original order preserved
     // within each tier.
     results.sort_by_key(|b| !b.preferred);
@@ -456,7 +452,7 @@ pub fn backends_with_capability(cap: BackendCapability) -> Vec<&'static SearchBa
 /// this function automatically degrades to a fallback backend when a preferred
 /// tool is absent.  Callers do not need to inspect the `preferred` flag —
 /// they always receive the best available option.
-pub fn select_backend<'a>(
+pub fn select_backend(
     cap: BackendCapability,
     available: &[&str],
 ) -> Option<&'static SearchBackend> {
@@ -473,7 +469,10 @@ mod tests {
 
     #[test]
     fn category_str_high_performance() {
-        assert_eq!(BackendCategory::HighPerformance.as_str(), "high-performance");
+        assert_eq!(
+            BackendCategory::HighPerformance.as_str(),
+            "high-performance"
+        );
     }
 
     #[test]
@@ -827,7 +826,11 @@ mod tests {
 
     #[test]
     fn normalize_kind_is_static() {
-        let hit = make_hit(SearchIntent::DependencyTracing, ResultKind::SourceCode, None);
+        let hit = make_hit(
+            SearchIntent::DependencyTracing,
+            ResultKind::SourceCode,
+            None,
+        );
         let rec = normalize(&hit, "2026-03-19T00:00:00Z", DiagnosticStatus::Pass);
         assert_eq!(rec.kind, EvidenceKind::Static);
     }
@@ -847,7 +850,9 @@ mod tests {
     fn normalize_raw_refs_contains_matched_text() {
         let hit = make_hit(SearchIntent::ConfigLookup, ResultKind::Config, None);
         let rec = normalize(&hit, "2026-03-19T00:00:00Z", DiagnosticStatus::Pass);
-        assert!(rec.raw_refs.contains(&"DATABASE_URL=postgres://localhost/app".to_string()));
+        assert!(rec
+            .raw_refs
+            .contains(&"DATABASE_URL=postgres://localhost/app".to_string()));
     }
 
     #[test]
@@ -873,7 +878,11 @@ mod tests {
 
     #[test]
     fn normalize_summary_contains_query_and_intent() {
-        let hit = make_hit(SearchIntent::EntryPointTracing, ResultKind::SourceCode, None);
+        let hit = make_hit(
+            SearchIntent::EntryPointTracing,
+            ResultKind::SourceCode,
+            None,
+        );
         let rec = normalize(&hit, "2026-03-19T00:00:00Z", DiagnosticStatus::Pass);
         assert!(rec.summary.contains("entry-point-tracing"));
         assert!(rec.summary.contains("DATABASE_URL"));
@@ -941,7 +950,10 @@ mod tests {
             query: "tokio".into(),
         };
         let rec = normalize(&hit, "2026-03-20T00:00:00Z", DiagnosticStatus::Pass);
-        assert_eq!(rec.metadata.get("backend").map(String::as_str), Some("grep"));
+        assert_eq!(
+            rec.metadata.get("backend").map(String::as_str),
+            Some("grep")
+        );
     }
 
     #[test]

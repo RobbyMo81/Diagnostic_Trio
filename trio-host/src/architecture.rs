@@ -195,7 +195,8 @@ pub const DESIGN_PRINCIPLES: &[DesignPrinciple] = &[
     },
     DesignPrinciple {
         name: "Language boundary is firm",
-        description: "Rust handles execution, I/O, and MCP; Python handles reasoning and narrative. \
+        description:
+            "Rust handles execution, I/O, and MCP; Python handles reasoning and narrative. \
                        The boundary is the JSONL bridge message stream.",
     },
     DesignPrinciple {
@@ -232,12 +233,18 @@ mod tests {
 
     #[test]
     fn layered_diagnosis_as_str() {
-        assert_eq!(OperatingFlow::LayeredDiagnosis.as_str(), "layered-diagnosis");
+        assert_eq!(
+            OperatingFlow::LayeredDiagnosis.as_str(),
+            "layered-diagnosis"
+        );
     }
 
     #[test]
     fn maintenance_drift_as_str() {
-        assert_eq!(OperatingFlow::MaintenanceDrift.as_str(), "maintenance-drift");
+        assert_eq!(
+            OperatingFlow::MaintenanceDrift.as_str(),
+            "maintenance-drift"
+        );
     }
 
     #[test]

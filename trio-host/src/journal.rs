@@ -228,7 +228,10 @@ mod tests {
 
     #[test]
     fn event_kind_finding_recorded() {
-        assert_eq!(JournalEventKind::FindingRecorded.as_str(), "finding-recorded");
+        assert_eq!(
+            JournalEventKind::FindingRecorded.as_str(),
+            "finding-recorded"
+        );
     }
 
     #[test]
@@ -243,7 +246,10 @@ mod tests {
 
     #[test]
     fn event_kind_workspace_updated() {
-        assert_eq!(JournalEventKind::WorkspaceUpdated.as_str(), "workspace-updated");
+        assert_eq!(
+            JournalEventKind::WorkspaceUpdated.as_str(),
+            "workspace-updated"
+        );
     }
 
     // --- JournalEntry construction ---
@@ -325,7 +331,8 @@ mod tests {
     #[test]
     fn format_line_metadata_key_value_present() {
         let mut e = entry(JournalEventKind::ProbeCompleted);
-        e.metadata.insert("probe".to_string(), "config-parse".to_string());
+        e.metadata
+            .insert("probe".to_string(), "config-parse".to_string());
         let line = format_line(&e);
         assert!(line.contains("\"probe\":\"config-parse\""));
     }

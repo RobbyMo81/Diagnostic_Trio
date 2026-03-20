@@ -209,17 +209,26 @@ mod tests {
 
     #[test]
     fn host_interface_maps_to_l2() {
-        assert_eq!(DiscoverProbeFamily::HostInterface.default_layer(), OsiLayer::DataLink);
+        assert_eq!(
+            DiscoverProbeFamily::HostInterface.default_layer(),
+            OsiLayer::DataLink
+        );
     }
 
     #[test]
     fn routing_config_maps_to_l3() {
-        assert_eq!(DiscoverProbeFamily::RoutingConfig.default_layer(), OsiLayer::Network);
+        assert_eq!(
+            DiscoverProbeFamily::RoutingConfig.default_layer(),
+            OsiLayer::Network
+        );
     }
 
     #[test]
     fn port_config_maps_to_l4() {
-        assert_eq!(DiscoverProbeFamily::PortConfig.default_layer(), OsiLayer::Transport);
+        assert_eq!(
+            DiscoverProbeFamily::PortConfig.default_layer(),
+            OsiLayer::Transport
+        );
     }
 
     #[test]
@@ -313,7 +322,10 @@ mod tests {
             DiagnosticStatus::Pass,
             "Dependencies pinned.",
         );
-        assert_eq!(rec.metadata.get("discover_scope").map(String::as_str), Some("repository"));
+        assert_eq!(
+            rec.metadata.get("discover_scope").map(String::as_str),
+            Some("repository")
+        );
     }
 
     #[test]
@@ -326,7 +338,10 @@ mod tests {
             DiagnosticStatus::Pass,
             "Hosts file readable.",
         );
-        assert_eq!(rec.metadata.get("discover_scope").map(String::as_str), Some("host"));
+        assert_eq!(
+            rec.metadata.get("discover_scope").map(String::as_str),
+            Some("host")
+        );
     }
 
     #[test]

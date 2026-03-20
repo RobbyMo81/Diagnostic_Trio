@@ -86,9 +86,9 @@ impl TraceTarget {
             TraceTarget::ListenersAndPorts | TraceTarget::BindOrTransportAnomaly => {
                 OsiLayer::Transport
             }
-            TraceTarget::Processes
-            | TraceTarget::Logs
-            | TraceTarget::RuntimeDependencies => OsiLayer::Application,
+            TraceTarget::Processes | TraceTarget::Logs | TraceTarget::RuntimeDependencies => {
+                OsiLayer::Application
+            }
         }
     }
 }
@@ -146,12 +146,18 @@ mod tests {
 
     #[test]
     fn target_str_listeners_and_ports() {
-        assert_eq!(TraceTarget::ListenersAndPorts.as_str(), "listeners-and-ports");
+        assert_eq!(
+            TraceTarget::ListenersAndPorts.as_str(),
+            "listeners-and-ports"
+        );
     }
 
     #[test]
     fn target_str_routes_and_interfaces() {
-        assert_eq!(TraceTarget::RoutesAndInterfaces.as_str(), "routes-and-interfaces");
+        assert_eq!(
+            TraceTarget::RoutesAndInterfaces.as_str(),
+            "routes-and-interfaces"
+        );
     }
 
     #[test]
@@ -166,34 +172,52 @@ mod tests {
 
     #[test]
     fn target_str_payload_or_protocol() {
-        assert_eq!(TraceTarget::PayloadOrProtocol.as_str(), "payload-or-protocol");
+        assert_eq!(
+            TraceTarget::PayloadOrProtocol.as_str(),
+            "payload-or-protocol"
+        );
     }
 
     #[test]
     fn target_str_runtime_dependencies() {
-        assert_eq!(TraceTarget::RuntimeDependencies.as_str(), "runtime-dependencies");
+        assert_eq!(
+            TraceTarget::RuntimeDependencies.as_str(),
+            "runtime-dependencies"
+        );
     }
 
     #[test]
     fn target_str_bind_or_transport_anomaly() {
-        assert_eq!(TraceTarget::BindOrTransportAnomaly.as_str(), "bind-or-transport-anomaly");
+        assert_eq!(
+            TraceTarget::BindOrTransportAnomaly.as_str(),
+            "bind-or-transport-anomaly"
+        );
     }
 
     // --- TraceTarget::default_layer ---
 
     #[test]
     fn processes_maps_to_l7() {
-        assert_eq!(TraceTarget::Processes.default_layer(), OsiLayer::Application);
+        assert_eq!(
+            TraceTarget::Processes.default_layer(),
+            OsiLayer::Application
+        );
     }
 
     #[test]
     fn listeners_and_ports_maps_to_l4() {
-        assert_eq!(TraceTarget::ListenersAndPorts.default_layer(), OsiLayer::Transport);
+        assert_eq!(
+            TraceTarget::ListenersAndPorts.default_layer(),
+            OsiLayer::Transport
+        );
     }
 
     #[test]
     fn routes_and_interfaces_maps_to_l3() {
-        assert_eq!(TraceTarget::RoutesAndInterfaces.default_layer(), OsiLayer::Network);
+        assert_eq!(
+            TraceTarget::RoutesAndInterfaces.default_layer(),
+            OsiLayer::Network
+        );
     }
 
     #[test]
@@ -208,78 +232,150 @@ mod tests {
 
     #[test]
     fn payload_or_protocol_maps_to_l6() {
-        assert_eq!(TraceTarget::PayloadOrProtocol.default_layer(), OsiLayer::Presentation);
+        assert_eq!(
+            TraceTarget::PayloadOrProtocol.default_layer(),
+            OsiLayer::Presentation
+        );
     }
 
     #[test]
     fn runtime_dependencies_maps_to_l7() {
-        assert_eq!(TraceTarget::RuntimeDependencies.default_layer(), OsiLayer::Application);
+        assert_eq!(
+            TraceTarget::RuntimeDependencies.default_layer(),
+            OsiLayer::Application
+        );
     }
 
     #[test]
     fn bind_or_transport_anomaly_maps_to_l4() {
-        assert_eq!(TraceTarget::BindOrTransportAnomaly.default_layer(), OsiLayer::Transport);
+        assert_eq!(
+            TraceTarget::BindOrTransportAnomaly.default_layer(),
+            OsiLayer::Transport
+        );
     }
 
     // --- capture ---
 
     #[test]
     fn capture_sets_source_tool_to_trace() {
-        let rec = capture(TS, "nginx", TraceTarget::Processes, DiagnosticStatus::Pass, "Running.");
+        let rec = capture(
+            TS,
+            "nginx",
+            TraceTarget::Processes,
+            DiagnosticStatus::Pass,
+            "Running.",
+        );
         assert_eq!(rec.source_tool, "trace");
     }
 
     #[test]
     fn capture_sets_kind_to_runtime() {
-        let rec = capture(TS, "nginx", TraceTarget::Processes, DiagnosticStatus::Pass, "Running.");
+        let rec = capture(
+            TS,
+            "nginx",
+            TraceTarget::Processes,
+            DiagnosticStatus::Pass,
+            "Running.",
+        );
         assert_eq!(rec.kind, EvidenceKind::Runtime);
     }
 
     #[test]
     fn capture_assigns_layer_from_target() {
-        let rec = capture(TS, ":443", TraceTarget::ListenersAndPorts, DiagnosticStatus::Pass, "Listening.");
+        let rec = capture(
+            TS,
+            ":443",
+            TraceTarget::ListenersAndPorts,
+            DiagnosticStatus::Pass,
+            "Listening.",
+        );
         assert_eq!(rec.layer, Some(OsiLayer::Transport.number())); // L4
     }
 
     #[test]
     fn capture_stores_trace_target_in_metadata() {
-        let rec = capture(TS, "eth0", TraceTarget::RoutesAndInterfaces, DiagnosticStatus::Pass, "Route OK.");
-        assert_eq!(rec.metadata.get("trace_target").map(String::as_str), Some("routes-and-interfaces"));
+        let rec = capture(
+            TS,
+            "eth0",
+            TraceTarget::RoutesAndInterfaces,
+            DiagnosticStatus::Pass,
+            "Route OK.",
+        );
+        assert_eq!(
+            rec.metadata.get("trace_target").map(String::as_str),
+            Some("routes-and-interfaces")
+        );
     }
 
     #[test]
     fn capture_sessions_maps_to_l5() {
-        let rec = capture(TS, "ssh", TraceTarget::Sessions, DiagnosticStatus::Pass, "Session active.");
+        let rec = capture(
+            TS,
+            "ssh",
+            TraceTarget::Sessions,
+            DiagnosticStatus::Pass,
+            "Session active.",
+        );
         assert_eq!(rec.layer, Some(5)); // Session
     }
 
     #[test]
     fn capture_payload_maps_to_l6() {
-        let rec = capture(TS, "http", TraceTarget::PayloadOrProtocol, DiagnosticStatus::Fail, "Bad framing.");
+        let rec = capture(
+            TS,
+            "http",
+            TraceTarget::PayloadOrProtocol,
+            DiagnosticStatus::Fail,
+            "Bad framing.",
+        );
         assert_eq!(rec.layer, Some(6)); // Presentation
     }
 
     #[test]
     fn capture_records_fail_status() {
-        let rec = capture(TS, ":8080", TraceTarget::BindOrTransportAnomaly, DiagnosticStatus::Fail, "Port in use.");
+        let rec = capture(
+            TS,
+            ":8080",
+            TraceTarget::BindOrTransportAnomaly,
+            DiagnosticStatus::Fail,
+            "Port in use.",
+        );
         assert_eq!(rec.status, DiagnosticStatus::Fail);
     }
 
     #[test]
     fn capture_records_blocked_status() {
-        let rec = capture(TS, "/var/log/secure", TraceTarget::Logs, DiagnosticStatus::Blocked, "Permission denied.");
+        let rec = capture(
+            TS,
+            "/var/log/secure",
+            TraceTarget::Logs,
+            DiagnosticStatus::Blocked,
+            "Permission denied.",
+        );
         assert_eq!(rec.status, DiagnosticStatus::Blocked);
     }
 
     #[test]
     fn capture_records_partial_status() {
-        let rec = capture(TS, "dns", TraceTarget::RuntimeDependencies, DiagnosticStatus::Partial, "Some resolvers unreachable.");
+        let rec = capture(
+            TS,
+            "dns",
+            TraceTarget::RuntimeDependencies,
+            DiagnosticStatus::Partial,
+            "Some resolvers unreachable.",
+        );
         assert_eq!(rec.status, DiagnosticStatus::Partial);
     }
 
     #[test]
     fn capture_records_not_tested_status() {
-        let rec = capture(TS, "lo", TraceTarget::RoutesAndInterfaces, DiagnosticStatus::NotTested, "Loopback skipped.");
+        let rec = capture(
+            TS,
+            "lo",
+            TraceTarget::RoutesAndInterfaces,
+            DiagnosticStatus::NotTested,
+            "Loopback skipped.",
+        );
         assert_eq!(rec.status, DiagnosticStatus::NotTested);
     }
 }

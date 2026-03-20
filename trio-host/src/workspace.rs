@@ -162,7 +162,10 @@ mod tests {
     fn workspace_layout_sub_dirs() {
         let l = layout();
         assert_eq!(l.root, PathBuf::from("/tmp/trio-test-workspace"));
-        assert_eq!(l.artifacts, PathBuf::from("/tmp/trio-test-workspace/artifacts"));
+        assert_eq!(
+            l.artifacts,
+            PathBuf::from("/tmp/trio-test-workspace/artifacts")
+        );
         assert_eq!(l.cache, PathBuf::from("/tmp/trio-test-workspace/cache"));
         assert_eq!(l.journal, PathBuf::from("/tmp/trio-test-workspace/journal"));
         assert_eq!(l.state, PathBuf::from("/tmp/trio-test-workspace/state"));
