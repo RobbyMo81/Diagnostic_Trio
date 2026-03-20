@@ -1,3 +1,18 @@
+## 2026-03-19 - US-007
+- Added `SearchIntent` enum (6 values: ConfigLookup, ErrorStringHunt, EntryPointTracing, DependencyTracing, SchemaOrPayloadSearch, SecretOrConfigSurfaceDetection) with `as_str` and `default_layer` (L6 for schema/payload, L7 for all others)
+- Added `ResultKind` enum (6 values: File, Config, Log, SourceCode, StructuredText, GeneratedArtifact) with `as_str`
+- Added `RawSearchHit` struct with file_path, line_number, matched_text, backend, intent, result_kind, query fields
+- Added `normalize` function producing an `EvidenceRecord` with source_tool="searcher", probe_family from intent, layer from intent, kind=Static, metadata containing backend/result_kind/query/line_number
+- Extended Python `searcher.py` with identical `SearchIntent`, `ResultKind`, `RawSearchHit` dataclass, and `normalize` function (local import of EvidenceRecord to avoid circular imports)
+- Extended `trio-reason/tests/test_searcher.py` with `TestSearchIntent` (14 tests), `TestResultKind` (7 tests), `TestNormalize` (16 tests)
+- Added 23 Rust tests in `searcher.rs` covering intent labels, layer assignments, result kind labels, and all normalize scenarios
+- Files changed: trio-host/src/searcher.rs, trio-reason/trio_reason/searcher.py, trio-reason/tests/test_searcher.py
+- **Learnings for future iterations:**
+  - Local import (`from trio_reason.evidence import ...` inside the function body) avoids circular import issues when two modules cross-reference each other
+  - `# type: ignore[name-defined]` with `# noqa: F821` is needed on forward-reference string annotations in function signatures when mypy can't resolve the type at module load time
+  - Python `int | None` union syntax works on 3.10+; with `from __future__ import annotations` it is safe on 3.9+ as well
+---
+
 ## 2026-03-19 - US-006
 - Added `trio-host/src/searcher.rs`: `BackendCategory` enum (5 categories with `as_str`), `BackendCapability` enum (9 capabilities with `as_str`), `SearchBackend` struct (name/label/category/preferred/capabilities + `has_capability`), `CATALOG` static slice of 13 backends, `backends_with_capability` fn returning preferred-first filtered list; 32 tests
 - Added `trio-reason/trio_reason/searcher.py`: equivalent Python module with `BackendCategory(str, Enum)`, `BackendCapability(str, Enum)`, `SearchBackend` frozen dataclass, `CATALOG` list, `backends_with_capability` function
