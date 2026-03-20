@@ -4,6 +4,8 @@
 //! responsible for CLI behavior, host interaction, orchestration,
 //! normalization, and MCP exposure.
 
+pub mod evidence;
+
 /// Returns the name and version of the Trio host layer.
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
