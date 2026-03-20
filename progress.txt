@@ -1,3 +1,16 @@
+## 2026-03-19 - US-010
+- Added `trio-host/src/journal.rs`: `JournalEventKind` enum (5 kinds with `as_str`), `JournalEntry` struct (id/timestamp/tool/event_kind/summary/evidence_ref/metadata + `new` constructor), `json_escape` helper, `format_line` fn returning JSONL string, `append` fn writing to file in append mode; 29 Rust tests
+- Added `trio-reason/trio_reason/journal.py`: equivalent Python module with `JournalEventKind(str, Enum)`, `JournalEntry` dataclass, `format_line` fn using `json.dumps`, `append` fn opening file in `"a"` mode
+- Added `trio-reason/tests/test_journal.py`: 32 tests in class-based style covering all 5 event kind values, entry construction + defaults, metadata isolation, format_line JSON validity, all fields, evidence_ref null/present, append creates/appends/preserves existing content, str path support
+- Exposed `pub mod journal` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/journal.rs, trio-host/src/lib.rs, trio-reason/trio_reason/journal.py, trio-reason/tests/test_journal.py
+- **Learnings for future iterations:**
+  - JSONL (JSON Lines) is the append-only journal format — one JSON object per line; `json.dumps(..., separators=(",", ":"))` produces compact output with no embedded newlines
+  - `evidence_ref` is the cross-reference field linking a journal entry to a related `EvidenceRecord` id; consumers join on this field
+  - Rust: without serde, use a manual `json_escape` helper and `format!` macro for JSONL serialisation; `O_APPEND` writes are atomic on POSIX for short lines
+  - File I/O tests should use `tempfile::TemporaryDirectory` (Python) or `std::env::temp_dir()` (Rust) and clean up after themselves
+---
+
 ## 2026-03-19 - US-009
 - Added `trio-host/src/safety.rs`: `SafetyLevel` enum (ReadOnly=0, Authorized=1, PartialOrd/Ord), `SafetyViolation` struct (operation/required/granted + Display), `SafetyPolicy` struct (read_only/authorized constructors + Default=ReadOnly), `check_gate` fn returning `Result<(), SafetyViolation>`; 26 Rust tests
 - Added `required_safety_level()` to `TraceTarget` in `trace.rs`: Sessions and PayloadOrProtocol → Authorized; all others → ReadOnly
