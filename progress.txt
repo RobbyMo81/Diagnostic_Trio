@@ -1,3 +1,16 @@
+## 2026-03-20 - US-014
+- Added `docs/ARCHITECTURE.md`: full narrative documentation of the three operating flows (InitialSetup, LayeredDiagnosis, MaintenanceDrift), companion capability table, ASCII data-flow diagram, extension point guides for NewProbeFamily/NewSearchBackend/NewTraceTarget/McpExposure, and design principles
+- Added `trio-host/src/architecture.rs`: `OperatingFlow` enum (3 values + steps()), `CapabilityRole` enum (3 values + source_domain/evidence_kind/description), `ExtensionPoint` enum (4 values + schema_change_required), `DesignPrinciple` struct, `ALL_FLOWS`/`ALL_CAPABILITIES`/`ALL_EXTENSION_POINTS`/`DESIGN_PRINCIPLES` constants; 27 Rust tests
+- Added `trio-reason/trio_reason/architecture.py`: mirror Python enums (`OperatingFlow`, `CapabilityRole`, `ExtensionPoint` all str+Enum), `DesignPrinciple` frozen dataclass, `_FLOW_STEPS` dict, `ALL_*` list constants
+- Added `trio-reason/tests/test_architecture.py`: 34 tests in class-based style covering all enum values, uniqueness, step counts, evidence kinds, source domains, descriptions, schema_change_required=False invariant, frozen dataclass enforcement, and presence of key design principles
+- Exposed `pub mod architecture` from `trio-host/src/lib.rs`; updated README implementation status table
+- Files changed: docs/ARCHITECTURE.md, trio-host/src/architecture.rs, trio-host/src/lib.rs, trio-reason/trio_reason/architecture.py, trio-reason/tests/test_architecture.py, README.md
+- **Learnings for future iterations:**
+  - Frozen dataclass mutation test must use `p.name = "mutated"` (not `object.__setattr__`) — the latter bypasses the frozen guard and never raises
+  - `# type: ignore[misc]` (not `[arg-type]`) is the right suppressor for direct attribute assignment on a frozen dataclass in mypy
+  - For documentation stories, use testable constants/enums alongside prose docs so quality checks enforce completeness
+---
+
 ## 2026-03-20 - US-013
 - Added `select_backend(cap, available)` to `trio-host/src/searcher.rs`: iterates `backends_with_capability(cap)` (preferred-first) and returns the first backend whose name appears in `available`; returns `None` when no capable backend is available on the host; 9 Rust tests
 - Added `select_backend(cap, available)` to `trio-reason/trio_reason/searcher.py`: equivalent Python function using `available_set` for O(1) lookup; returns `Optional[SearchBackend]`

@@ -83,10 +83,10 @@ pytest
 | US-008 | Trace runtime evidence capture | complete |
 | US-009 | Runtime safety gating | complete |
 | US-010 | Shared journal | complete |
-| US-011 | Artifact write-back behavior | pending |
-| US-012 | Rust/Python boundary documentation | pending |
-| US-013 | Search backend fallback behavior | pending |
-| US-014 | Family architecture documentation | pending |
+| US-011 | Artifact write-back behavior | complete |
+| US-012 | Rust/Python boundary documentation | complete |
+| US-013 | Search backend fallback behavior | complete |
+| US-014 | Family architecture documentation | complete |
 
 ## Automation
 
