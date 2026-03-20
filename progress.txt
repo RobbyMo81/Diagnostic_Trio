@@ -20,3 +20,14 @@ Started: Thu Mar 19 22:13:38 PDT 2026
   - `setuptools.backends.legacy:build` is unavailable in newer setuptools; use `setuptools.build_meta`
   - System Python (linuxbrew) is externally managed; always use a venv at `/tmp/trio-venv`
 ---
+
+## 2026-03-19 - US-002
+- Added `trio-host/src/evidence.rs`: `DiagnosticStatus` enum (blocked/pass/fail/partial/not-tested), `EvidenceKind` enum (static/runtime), and `EvidenceRecord` struct with all required fields
+- Added `trio-reason/trio_reason/evidence.py`: equivalent Python dataclass with the same schema, validation on `layer` (1-7) and `confidence` (0.0-1.0)
+- Added `trio-reason/tests/test_evidence.py`: 15 tests covering all statuses, kinds, layers, validation errors, and optional fields
+- Exposed `pub mod evidence` from `trio-host/src/lib.rs`
+- **Learnings for future iterations:**
+  - Python `list[str]` type hint works without `List` import since Python 3.9+ (venv is 3.14)
+  - `dataclass` with `field(default_factory=list)` is the idiomatic way to default mutable fields
+  - `DiagnosticStatus(str, enum.Enum)` makes status values directly usable as strings without `.value` access
+---
