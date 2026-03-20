@@ -4,6 +4,7 @@
 //! responsible for CLI behavior, host interaction, orchestration,
 //! normalization, and MCP exposure.
 
+pub mod discover;
 pub mod evidence;
 pub mod layer;
 pub mod workspace;
