@@ -1,3 +1,15 @@
+## 2026-03-19 - US-005
+- Added `trio-host/src/discover.rs`: `DiscoverProbeFamily` enum (7 families with `as_str` and `default_layer`), `DiscoverScope` enum (Repository/Host), `classify` fn producing layer-tagged `EvidenceRecord` with `discover_scope` metadata
+- Added `trio-reason/trio_reason/discover.py`: equivalent Python module with `DiscoverProbeFamily(str, Enum)`, `DiscoverScope(str, Enum)`, and `classify` function
+- Added `trio-reason/tests/test_discover.py`: 30 tests in class-based style covering all probe families, layer assignments, scope metadata, all 5 statuses, and layer spot-checks
+- Exposed `pub mod discover` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/discover.rs, trio-host/src/lib.rs, trio-reason/trio_reason/discover.py, trio-reason/tests/test_discover.py
+- **Learnings for future iterations:**
+  - Test files must use class-based style with `-> None` return annotations to satisfy mypy; standalone `def test_` functions without annotations cause mypy errors
+  - `DiscoverProbeFamily.default_layer()` returns `int` (not `OsiLayer`) to keep the Python API simple; in Rust it returns `OsiLayer` for type safety
+  - Scope is stored as `discover_scope` key in `EvidenceRecord.metadata` — a lightweight pattern for probe-specific context without adding new schema fields
+---
+
 ## 2026-03-19 - US-004
 - Added `trio-host/src/layer.rs`: `OsiLayer` enum (L1-L7 with names/numbers), `status_blocks_upper` predicate, `effective_status` fn applying lower-layer dependency rule, 15 tests
 - Added `trio-reason/trio_reason/layer.py`: equivalent `OsiLayer(IntEnum)` with `layer_name`, `is_below`, `layers_below_inclusive`, `from_number`; `status_blocks_upper`; `effective_status`; `ALL_LAYERS` constant
