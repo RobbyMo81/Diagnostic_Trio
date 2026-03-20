@@ -27,6 +27,7 @@
 
 use crate::evidence::{DiagnosticStatus, EvidenceKind, EvidenceRecord};
 use crate::layer::OsiLayer;
+use crate::safety::SafetyLevel;
 
 /// Runtime interrogation targets supported by Trace.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,6 +62,18 @@ impl TraceTarget {
             TraceTarget::PayloadOrProtocol => "payload-or-protocol",
             TraceTarget::RuntimeDependencies => "runtime-dependencies",
             TraceTarget::BindOrTransportAnomaly => "bind-or-transport-anomaly",
+        }
+    }
+
+    /// Minimum [`SafetyLevel`] required to run this interrogation target.
+    ///
+    /// Most targets are `ReadOnly` (passive observation).  `Sessions` and
+    /// `PayloadOrProtocol` require `Authorized` because they observe privileged
+    /// state (session credentials, packet payload content).
+    pub fn required_safety_level(&self) -> SafetyLevel {
+        match self {
+            TraceTarget::Sessions | TraceTarget::PayloadOrProtocol => SafetyLevel::Authorized,
+            _ => SafetyLevel::ReadOnly,
         }
     }
 

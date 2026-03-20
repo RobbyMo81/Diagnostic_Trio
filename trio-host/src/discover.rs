@@ -29,6 +29,7 @@
 
 use crate::evidence::{DiagnosticStatus, EvidenceKind, EvidenceRecord};
 use crate::layer::OsiLayer;
+use crate::safety::SafetyLevel;
 
 /// Categories of probes performed by Discover.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,6 +94,18 @@ impl DiscoverScope {
         match self {
             DiscoverScope::Repository => "repository",
             DiscoverScope::Host => "host",
+        }
+    }
+
+    /// Minimum [`SafetyLevel`] required to probe this scope.
+    ///
+    /// `Repository` reads version-controlled artifacts — always `ReadOnly`.
+    /// `Host` reads OS-level config files outside the repository (e.g.
+    /// `/etc/shadow`, `/proc/net/route`) and therefore requires `Authorized`.
+    pub fn required_safety_level(self) -> SafetyLevel {
+        match self {
+            DiscoverScope::Repository => SafetyLevel::ReadOnly,
+            DiscoverScope::Host => SafetyLevel::Authorized,
         }
     }
 }

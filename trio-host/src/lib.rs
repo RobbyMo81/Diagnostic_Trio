@@ -7,6 +7,7 @@
 pub mod discover;
 pub mod evidence;
 pub mod layer;
+pub mod safety;
 pub mod searcher;
 pub mod trace;
 pub mod workspace;

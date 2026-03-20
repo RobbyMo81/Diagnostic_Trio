@@ -36,6 +36,7 @@ from __future__ import annotations
 import enum
 
 from trio_reason.evidence import DiagnosticStatus, EvidenceKind, EvidenceRecord
+from trio_reason.safety import SafetyLevel
 
 # Map from probe-family value to default OSI layer number.
 _PROBE_FAMILY_LAYER: dict[str, int] = {
@@ -86,6 +87,17 @@ class DiscoverScope(str, enum.Enum):
 
     HOST = "host"
     """OS-level configuration files present on the running host."""
+
+    def required_safety_level(self) -> SafetyLevel:
+        """Return the minimum :class:`~trio_reason.safety.SafetyLevel` required.
+
+        ``REPOSITORY`` reads version-controlled artifacts — always ``READ_ONLY``.
+        ``HOST`` reads OS-level config files outside the repository and therefore
+        requires ``AUTHORIZED``.
+        """
+        if self is DiscoverScope.HOST:
+            return SafetyLevel.AUTHORIZED
+        return SafetyLevel.READ_ONLY
 
 
 def classify(

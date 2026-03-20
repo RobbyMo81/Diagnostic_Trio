@@ -38,6 +38,7 @@ from __future__ import annotations
 import enum
 
 from trio_reason.evidence import DiagnosticStatus, EvidenceKind, EvidenceRecord
+from trio_reason.safety import SafetyLevel
 
 # Map from target value to default OSI layer number.
 _TARGET_LAYER: dict[str, int] = {
@@ -78,6 +79,17 @@ class TraceTarget(str, enum.Enum):
 
     BIND_OR_TRANSPORT_ANOMALY = "bind-or-transport-anomaly"
     """Detect bind failures, port conflicts, transport anomalies (L4 Transport)."""
+
+    def required_safety_level(self) -> SafetyLevel:
+        """Return the minimum :class:`~trio_reason.safety.SafetyLevel` required.
+
+        ``SESSIONS`` and ``PAYLOAD_OR_PROTOCOL`` require ``AUTHORIZED`` because
+        they observe privileged state (session credentials, packet content).
+        All other targets are ``READ_ONLY``.
+        """
+        if self in (TraceTarget.SESSIONS, TraceTarget.PAYLOAD_OR_PROTOCOL):
+            return SafetyLevel.AUTHORIZED
+        return SafetyLevel.READ_ONLY
 
     def default_layer(self) -> int:
         """Return the default OSI layer number (1–7) for this interrogation target."""
