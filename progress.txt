@@ -1,3 +1,15 @@
+## 2026-03-19 - US-008
+- Added `trio-host/src/trace.rs`: `TraceTarget` enum (8 targets with `as_str` and `default_layer`), `capture` fn producing `EvidenceKind::Runtime` `EvidenceRecord` with `source_tool="trace"` and `trace_target` metadata; 21 Rust tests
+- Added `trio-reason/trio_reason/trace.py`: equivalent Python module with `TraceTarget(str, Enum)` and `capture` function; local `_TARGET_LAYER` dict maps target values to OSI layer numbers
+- Added `trio-reason/tests/test_trace.py`: 31 tests in class-based style covering all 8 target values, all 8 layer assignments, source_tool/kind/layer/metadata fields, all 5 statuses, and metadata isolation between calls
+- Exposed `pub mod trace` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/trace.rs, trio-host/src/lib.rs, trio-reason/trio_reason/trace.py, trio-reason/tests/test_trace.py
+- **Learnings for future iterations:**
+  - Trace always emits `EvidenceKind::Runtime` — this is the key distinction from Discover (Static); the `trace_target` metadata key mirrors `discover_scope` in Discover
+  - Layer assignments: Processes/Logs/RuntimeDependencies → L7; ListenersAndPorts/BindOrTransportAnomaly → L4; Sessions → L5; PayloadOrProtocol → L6; RoutesAndInterfaces → L3
+  - Metadata isolation test (two captures don't share metadata dict) is a good regression guard for any function that builds metadata inline
+---
+
 ## 2026-03-19 - US-007
 - Added `SearchIntent` enum (6 values: ConfigLookup, ErrorStringHunt, EntryPointTracing, DependencyTracing, SchemaOrPayloadSearch, SecretOrConfigSurfaceDetection) with `as_str` and `default_layer` (L6 for schema/payload, L7 for all others)
 - Added `ResultKind` enum (6 values: File, Config, Log, SourceCode, StructuredText, GeneratedArtifact) with `as_str`
