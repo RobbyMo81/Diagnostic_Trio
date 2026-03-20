@@ -5,6 +5,7 @@
 //! normalization, and MCP exposure.
 
 pub mod artifact;
+pub mod boundary;
 pub mod discover;
 pub mod evidence;
 pub mod journal;
