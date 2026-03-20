@@ -1,0 +1,22 @@
+## Codebase Patterns
+- Rust crate lives in `trio-host/`, Python package in `trio-reason/trio_reason/` (underscore, inside the hyphenated project dir)
+- Python packaging uses `setuptools` with `setup.cfg` for `find:` package discovery
+- Python venv at `/tmp/trio-venv` (or create fresh) — system Python is externally managed (PEP 668)
+- Run Python checks: `mypy trio_reason tests` and `pytest` from inside `trio-reason/`
+- Run Rust checks: `cargo test` from repo root (workspace)
+
+# Ralph Progress Log
+Started: Thu Mar 19 22:13:38 PDT 2026
+---
+
+## 2026-03-19 - US-001
+- Created Rust workspace (`Cargo.toml`) with `trio-host` crate (lib + binary)
+- Created Python package `trio-reason/trio_reason/` with pyproject.toml, setup.cfg, mypy config, and pytest config
+- Updated README.md with component table, capability descriptions, and dev instructions
+- Added `.gitignore` for Rust `target/` and Python `__pycache__`/`.egg-info`
+- Files changed: Cargo.toml, Cargo.lock, .gitignore, README.md, trio-host/Cargo.toml, trio-host/src/{lib,main}.rs, trio-reason/pyproject.toml, trio-reason/setup.cfg, trio-reason/trio_reason/__init__.py, trio-reason/trio_reason/py.typed, trio-reason/tests/test_package.py
+- **Learnings for future iterations:**
+  - Python package directory must use underscore (`trio_reason`), not hyphen — placed inside the hyphen-named project dir `trio-reason/`
+  - `setuptools.backends.legacy:build` is unavailable in newer setuptools; use `setuptools.build_meta`
+  - System Python (linuxbrew) is externally managed; always use a venv at `/tmp/trio-venv`
+---
