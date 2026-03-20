@@ -1,3 +1,15 @@
+## 2026-03-19 - US-003
+- Added `trio-host/src/workspace.rs`: `WorkspaceLayout` struct (root/artifacts/cache/journal/state paths + helper methods), `SharedState` struct (target, workspace, discover_scope, search_roots, search_query, trace_scope, extra), and 8 Rust tests
+- Added `trio-reason/trio_reason/workspace.py`: equivalent Python dataclasses with `WorkspaceLayout.from_root()` classmethod and all path helpers, `SharedState` with tool-specific field documentation
+- Added `trio-reason/tests/test_workspace.py`: 21 tests covering layout paths, constants, state defaults/population, and Quartet independence check
+- Exposed `pub mod workspace` from `trio-host/src/lib.rs`
+- Files changed: trio-host/src/workspace.rs, trio-host/src/lib.rs, trio-reason/trio_reason/workspace.py, trio-reason/tests/test_workspace.py
+- **Learnings for future iterations:**
+  - `WorkspaceLayout` uses a classmethod `from_root` pattern (Python) / associated fn `new` (Rust) to keep construction explicit and avoid confusion with the generated dataclass `__init__`
+  - Quartet independence is testable by checking `sys.modules` for any `quartet.*` prefix after importing the workspace module
+  - `field(default_factory=list)` and `field(default_factory=dict)` are required for mutable defaults in Python dataclasses
+---
+
 ## Codebase Patterns
 - Rust crate lives in `trio-host/`, Python package in `trio-reason/trio_reason/` (underscore, inside the hyphenated project dir)
 - Python packaging uses `setuptools` with `setup.cfg` for `find:` package discovery
